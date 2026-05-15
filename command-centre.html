@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0b0d12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Command Centre">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Command Centre</title>
+<style>
+:root {
+  --bg: #0b0d12;
+  --surface: #14171f;
+  --surface-2: #1c2030;
+  --border: #262b3a;
+  --text: #e8ecf3;
+  --muted: #8b93a7;
+  --accent: #d4af37;
+  --accent-soft: rgba(212, 175, 55, 0.15);
+  --green: #4ade80;
+  --blue: #60a5fa;
+  --purple: #a78bfa;
+  --orange: #fb923c;
+  --red: #f87171;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body {
+  margin: 0; padding: 0;
+  background: var(--bg); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+body {
+  padding: calc(var(--safe-top) + 16px) 16px calc(var(--safe-bottom) + 96px);
+  max-width: 720px; margin: 0 auto;
+}
+.greeting { font-size: 13px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+.headline { font-size: 28px; font-weight: 700; margin: 4px 0 2px; }
+.date-line { font-size: 14px; color: var(--muted); margin-bottom: 20px; }
+
+.quick-actions {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  margin-bottom: 22px;
+}
+.quick-actions button {
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--text); padding: 12px 14px; border-radius: 14px;
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.quick-actions button:active { background: var(--surface-2); }
+.quick-actions button .plus { color: var(--accent); font-size: 18px; line-height: 1; }
+
+.section { margin-bottom: 24px; }
+.section-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.section-title { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.section-count { font-size: 11px; color: var(--muted); }
+
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 16px; padding: 14px; margin-bottom: 10px;
+  position: relative;
+}
+.card .row { display: flex; align-items: center; gap: 10px; }
+.card .when {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700; font-size: 16px; color: var(--accent);
+  min-width: 64px;
+}
+.card .title { font-weight: 600; font-size: 15px; }
+.card .meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.card .notes { font-size: 13px; color: var(--text); opacity: 0.85; margin-top: 8px; line-height: 1.4; white-space: pre-wrap; }
+.card .actions {
+  position: absolute; top: 10px; right: 10px;
+  display: flex; gap: 6px;
+}
+.card .actions button {
+  background: transparent; border: none; color: var(--muted);
+  padding: 4px 6px; cursor: pointer; font-size: 12px;
+}
+.card .actions button:hover { color: var(--text); }
+
+.badge {
+  display: inline-block; padding: 2px 8px; border-radius: 999px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+  border: 1px solid var(--border);
+}
+.badge.green { color: var(--green); border-color: rgba(74, 222, 128, 0.4); }
+.badge.blue { color: var(--blue); border-color: rgba(96, 165, 250, 0.4); }
+.badge.purple { color: var(--purple); border-color: rgba(167, 139, 250, 0.4); }
+.badge.orange { color: var(--orange); border-color: rgba(251, 146, 60, 0.4); }
+.badge.red { color: var(--red); border-color: rgba(248, 113, 113, 0.4); }
+.badge.gold { color: var(--accent); border-color: rgba(212, 175, 55, 0.5); background: var(--accent-soft); }
+
+.tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+.tab {
+  flex: 1; background: var(--surface); border: 1px solid var(--border);
+  color: var(--muted); padding: 8px 10px; border-radius: 10px;
+  font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.tab.active { color: var(--text); background: var(--surface-2); border-color: var(--accent); }
+
+.empty {
+  text-align: center; color: var(--muted); font-size: 13px;
+  padding: 22px 12px; border: 1px dashed var(--border); border-radius: 14px;
+}
+
+/* Modal */
+.modal-bg {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+  display: none; align-items: flex-end; justify-content: center;
+  z-index: 50; backdrop-filter: blur(4px);
+}
+.modal-bg.open { display: flex; }
+.modal {
+  background: var(--surface); width: 100%; max-width: 720px;
+  border-radius: 20px 20px 0 0; padding: 20px 18px calc(var(--safe-bottom) + 20px);
+  border-top: 1px solid var(--border);
+  max-height: 90vh; overflow-y: auto;
+}
+.modal h3 { margin: 0 0 14px; font-size: 18px; }
+.field { margin-bottom: 12px; }
+.field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.04em; text-transform: uppercase; }
+.field input, .field select, .field textarea {
+  width: 100%; background: var(--bg); border: 1px solid var(--border);
+  color: var(--text); padding: 12px 12px; border-radius: 12px;
+  font-size: 15px; font-family: inherit; outline: none;
+}
+.field textarea { resize: vertical; min-height: 80px; }
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
+.modal-actions { display: flex; gap: 10px; margin-top: 8px; }
+.btn {
+  flex: 1; padding: 13px; border-radius: 12px; border: 1px solid var(--border);
+  background: var(--surface-2); color: var(--text); font-size: 15px; font-weight: 600;
+  cursor: pointer;
+}
+.btn.primary { background: var(--accent); color: #0b0d12; border-color: var(--accent); }
+.btn.danger { color: var(--red); border-color: rgba(248,113,113,0.4); background: transparent; }
+
+footer {
+  text-align: center; color: var(--muted); font-size: 11px;
+  margin-top: 24px;
+}
+footer a { color: var(--muted); }
+</style>
+</head>
+<body>
+
+<div class="greeting" id="greeting">Good morning</div>
+<h1 class="headline">Command Centre</h1>
+<div class="date-line" id="dateLine"></div>
+
+<div class="quick-actions">
+  <button onclick="openModal('appt')"><span class="plus">+</span> Appointment</button>
+  <button onclick="openModal('project')"><span class="plus">+</span> Project</button>
+</div>
+
+<section class="section">
+  <div class="section-head">
+    <div class="section-title">Upcoming Appointments</div>
+    <div class="section-count" id="apptCount"></div>
+  </div>
+  <div id="apptList"></div>
+</section>
+
+<section class="section">
+  <div class="section-head">
+    <div class="section-title">Projects</div>
+    <div class="section-count" id="projectCount"></div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" data-filter="all">All</button>
+    <button class="tab" data-filter="listing">Listings</button>
+    <button class="tab" data-filter="ai">AI / Claude / ChatGPT</button>
+    <button class="tab" data-filter="other">Other</button>
+  </div>
+  <div id="projectList"></div>
+</section>
+
+<footer>
+  Saved on this device &middot; <a href="#" onclick="exportData(event)">Export</a> &middot; <a href="#" onclick="importData(event)">Import</a>
+</footer>
+
+<!-- Modal -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal" id="modal"></div>
+</div>
+
+<script>
+const STORE_KEY = 'cmdCentre.v1';
+const defaultData = {
+  appointments: [
+    { id: 'a1', when: new Date(Date.now() + 86400000).toISOString().slice(0,16), title: 'Showing — 2147 Wateroak Dr', with: 'Client', notes: 'Bring updated feature sheet.' }
+  ],
+  projects: [
+    { id: 'p1', type: 'listing', title: '2147 Wateroak Dr', status: 'Active', updated: Date.now(), notes: 'Listed at $839,000. Twilight photos done.' },
+    { id: 'p2', type: 'ai', title: 'Listing site polish (Claude)', status: 'In Progress', updated: Date.now(), notes: 'Working on phone command centre.' }
+  ]
+};
+
+let data = load();
+let projectFilter = 'all';
+let editing = null;
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (!raw) { save(defaultData); return defaultData; }
+    return JSON.parse(raw);
+  } catch (e) { return JSON.parse(JSON.stringify(defaultData)); }
+}
+function save(d) { localStorage.setItem(STORE_KEY, JSON.stringify(d || data)); }
+function uid() { return Math.random().toString(36).slice(2, 9); }
+
+function renderGreeting() {
+  const now = new Date();
+  const h = now.getHours();
+  let g = 'Good evening';
+  if (h < 12) g = 'Good morning';
+  else if (h < 17) g = 'Good afternoon';
+  document.getElementById('greeting').textContent = g;
+  document.getElementById('dateLine').textContent = now.toLocaleDateString(undefined, {
+    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+  });
+}
+
+function fmtWhen(iso) {
+  const d = new Date(iso);
+  const today = new Date();
+  const tomorrow = new Date(); tomorrow.setDate(today.getDate() + 1);
+  const sameDay = (a,b) => a.toDateString() === b.toDateString();
+  const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  if (sameDay(d, today)) return { day: 'Today', time };
+  if (sameDay(d, tomorrow)) return { day: 'Tomorrow', time };
+  return {
+    day: d.toLocaleDateString([], { month: 'short', day: 'numeric' }),
+    time
+  };
+}
+
+function renderAppts() {
+  const list = document.getElementById('apptList');
+  const sorted = [...data.appointments].sort((a,b) => new Date(a.when) - new Date(b.when));
+  document.getElementById('apptCount').textContent = sorted.length ? sorted.length : '';
+  if (!sorted.length) {
+    list.innerHTML = '<div class="empty">No appointments yet. Tap + Appointment to add one.</div>';
+    return;
+  }
+  list.innerHTML = sorted.map(a => {
+    const w = fmtWhen(a.when);
+    return `
+      <div class="card">
+        <div class="actions">
+          <button onclick="openModal('appt','${a.id}')">Edit</button>
+          <button onclick="del('appt','${a.id}')">✕</button>
+        </div>
+        <div class="row">
+          <div class="when"><div>${w.day}</div><div style="font-size:12px;color:var(--muted);font-weight:600;">${w.time}</div></div>
+          <div style="min-width:0;">
+            <div class="title">${esc(a.title)}</div>
+            ${a.with ? `<div class="meta">${esc(a.with)}</div>` : ''}
+          </div>
+        </div>
+        ${a.notes ? `<div class="notes">${esc(a.notes)}</div>` : ''}
+      </div>`;
+  }).join('');
+}
+
+function statusBadgeClass(s) {
+  s = (s || '').toLowerCase();
+  if (s.includes('active') || s.includes('live')) return 'green';
+  if (s.includes('progress')) return 'blue';
+  if (s.includes('idea') || s.includes('backlog')) return 'purple';
+  if (s.includes('hold') || s.includes('pause')) return 'orange';
+  if (s.includes('done') || s.includes('sold') || s.includes('closed')) return 'gold';
+  if (s.includes('block')) return 'red';
+  return '';
+}
+function typeLabel(t) {
+  if (t === 'listing') return 'Listing';
+  if (t === 'ai') return 'AI';
+  return 'Project';
+}
+
+function renderProjects() {
+  const list = document.getElementById('projectList');
+  let items = [...data.projects];
+  if (projectFilter !== 'all') items = items.filter(p => p.type === projectFilter);
+  items.sort((a,b) => (b.updated || 0) - (a.updated || 0));
+  document.getElementById('projectCount').textContent = items.length ? items.length : '';
+  if (!items.length) {
+    list.innerHTML = '<div class="empty">No projects here yet.</div>';
+    return;
+  }
+  list.innerHTML = items.map(p => `
+    <div class="card">
+      <div class="actions">
+        <button onclick="openModal('project','${p.id}')">Edit</button>
+        <button onclick="del('project','${p.id}')">✕</button>
+      </div>
+      <div class="row" style="gap:8px;flex-wrap:wrap;">
+        <span class="badge">${typeLabel(p.type)}</span>
+        ${p.status ? `<span class="badge ${statusBadgeClass(p.status)}">${esc(p.status)}</span>` : ''}
+      </div>
+      <div class="title" style="margin-top:8px;">${esc(p.title)}</div>
+      ${p.notes ? `<div class="notes">${esc(p.notes)}</div>` : ''}
+      <div class="meta" style="margin-top:8px;">Updated ${timeAgo(p.updated)}</div>
+    </div>
+  `).join('');
+}
+
+function timeAgo(ts) {
+  if (!ts) return '—';
+  const diff = (Date.now() - ts) / 1000;
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+  return Math.floor(diff/86400) + 'd ago';
+}
+
+function esc(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function openModal(kind, id) {
+  editing = { kind, id };
+  const modal = document.getElementById('modal');
+  if (kind === 'appt') {
+    const a = id ? data.appointments.find(x => x.id === id) : { when: defaultWhen(), title: '', with: '', notes: '' };
+    modal.innerHTML = `
+      <h3>${id ? 'Edit' : 'New'} Appointment</h3>
+      <div class="field"><label>When</label><input type="datetime-local" id="f_when" value="${a.when || ''}"></div>
+      <div class="field"><label>Title</label><input id="f_title" value="${esc(a.title)}" placeholder="Showing, call, meeting…"></div>
+      <div class="field"><label>With / Where</label><input id="f_with" value="${esc(a.with || '')}" placeholder="Client name or location"></div>
+      <div class="field"><label>Notes</label><textarea id="f_notes" placeholder="Anything to remember">${esc(a.notes || '')}</textarea></div>
+      <div class="modal-actions">
+        ${id ? '<button class="btn danger" onclick="del(\'appt\',\''+id+'\',true)">Delete</button>' : ''}
+        <button class="btn" onclick="closeModal()">Cancel</button>
+        <button class="btn primary" onclick="saveAppt()">Save</button>
+      </div>`;
+  } else {
+    const p = id ? data.projects.find(x => x.id === id) : { type: 'ai', title: '', status: 'In Progress', notes: '' };
+    modal.innerHTML = `
+      <h3>${id ? 'Edit' : 'New'} Project</h3>
+      <div class="field"><label>Type</label>
+        <select id="f_type">
+          <option value="ai" ${p.type==='ai'?'selected':''}>AI (Claude / ChatGPT)</option>
+          <option value="listing" ${p.type==='listing'?'selected':''}>Real Estate Listing</option>
+          <option value="other" ${p.type==='other'?'selected':''}>Other</option>
+        </select>
+      </div>
+      <div class="field"><label>Title</label><input id="f_title" value="${esc(p.title)}" placeholder="Project name"></div>
+      <div class="field"><label>Status</label>
+        <select id="f_status">
+          ${['Idea','In Progress','Active','On Hold','Blocked','Done'].map(s =>
+            `<option ${p.status===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field"><label>Notes</label><textarea id="f_notes" placeholder="What's the current state?">${esc(p.notes || '')}</textarea></div>
+      <div class="modal-actions">
+        ${id ? '<button class="btn danger" onclick="del(\'project\',\''+id+'\',true)">Delete</button>' : ''}
+        <button class="btn" onclick="closeModal()">Cancel</button>
+        <button class="btn primary" onclick="saveProject()">Save</button>
+      </div>`;
+  }
+  document.getElementById('modalBg').classList.add('open');
+}
+function closeModal() {
+  editing = null;
+  document.getElementById('modalBg').classList.remove('open');
+}
+function defaultWhen() {
+  const d = new Date(); d.setMinutes(0); d.setSeconds(0);
+  d.setHours(d.getHours() + 1);
+  const pad = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function saveAppt() {
+  const obj = {
+    id: editing.id || uid(),
+    when: document.getElementById('f_when').value,
+    title: document.getElementById('f_title').value.trim(),
+    with: document.getElementById('f_with').value.trim(),
+    notes: document.getElementById('f_notes').value.trim()
+  };
+  if (!obj.title) { alert('Title is required'); return; }
+  const i = data.appointments.findIndex(a => a.id === obj.id);
+  if (i >= 0) data.appointments[i] = obj; else data.appointments.push(obj);
+  save(); renderAppts(); closeModal();
+}
+function saveProject() {
+  const obj = {
+    id: editing.id || uid(),
+    type: document.getElementById('f_type').value,
+    title: document.getElementById('f_title').value.trim(),
+    status: document.getElementById('f_status').value,
+    notes: document.getElementById('f_notes').value.trim(),
+    updated: Date.now()
+  };
+  if (!obj.title) { alert('Title is required'); return; }
+  const i = data.projects.findIndex(p => p.id === obj.id);
+  if (i >= 0) data.projects[i] = obj; else data.projects.push(obj);
+  save(); renderProjects(); closeModal();
+}
+function del(kind, id, fromModal) {
+  if (!confirm('Delete this item?')) return;
+  if (kind === 'appt') data.appointments = data.appointments.filter(a => a.id !== id);
+  else data.projects = data.projects.filter(p => p.id !== id);
+  save();
+  renderAppts(); renderProjects();
+  if (fromModal) closeModal();
+}
+
+document.getElementById('modalBg').addEventListener('click', e => {
+  if (e.target.id === 'modalBg') closeModal();
+});
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    projectFilter = t.dataset.filter;
+    renderProjects();
+  });
+});
+
+function exportData(e) {
+  e.preventDefault();
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'command-centre-backup.json'; a.click();
+  URL.revokeObjectURL(url);
+}
+function importData(e) {
+  e.preventDefault();
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'application/json';
+  input.onchange = () => {
+    const f = input.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const parsed = JSON.parse(r.result);
+        if (parsed.appointments && parsed.projects) {
+          data = parsed; save(); renderAppts(); renderProjects();
+        } else alert('Invalid backup file');
+      } catch { alert('Could not read file'); }
+    };
+    r.readAsText(f);
+  };
+  input.click();
+}
+
+renderGreeting();
+renderAppts();
+renderProjects();
+setInterval(renderGreeting, 60000);
+</script>
+</body>
+</html>
