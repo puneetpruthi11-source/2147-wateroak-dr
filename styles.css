@@ -825,6 +825,11 @@ ul { list-style: none; }
     shape-rendering: crispEdges;
 }
 
+.market-chart .axis-line {
+    stroke: var(--color-primary-light);
+    stroke-width: 1.5;
+}
+
 .market-chart .chart-line {
     stroke-dasharray: 2400;
     stroke-dashoffset: 2400;

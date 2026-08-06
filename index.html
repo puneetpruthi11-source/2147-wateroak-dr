@@ -453,7 +453,7 @@
 
         <div class="market-card">
             <div class="market-chart">
-                <svg viewBox="0 0 900 470" role="img" aria-labelledby="chartTitle chartDesc" preserveAspectRatio="xMidYMid meet">
+                <svg viewBox="-30 0 930 500" role="img" aria-labelledby="chartTitle chartDesc" preserveAspectRatio="xMidYMid meet">
                     <title id="chartTitle">GTA average home selling price, January to July 2026</title>
                     <desc id="chartDesc">A line chart showing the GTA average selling price rising from $973,289 in January to a peak of $1,069,700 in May, then easing to $1,003,956 in July.</desc>
                     <defs>
@@ -462,6 +462,10 @@
                             <stop offset="100%" stop-color="#a68b5b" stop-opacity="0"/>
                         </linearGradient>
                     </defs>
+
+                    <!-- Axis titles -->
+                    <text class="axis-title" x="-8" y="225" text-anchor="middle" transform="rotate(-90 -8 225)" font-size="16" font-weight="600" fill="#2d3a2e" font-family="Georgia, serif">Average Selling Price</text>
+                    <text class="axis-title" x="470" y="490" text-anchor="middle" font-size="16" font-weight="600" fill="#2d3a2e" font-family="Georgia, serif">Month (2026)</text>
 
                     <!-- Gridlines & Y axis labels -->
                     <g class="chart-grid" font-size="14" fill="#8a857b" font-family="-apple-system, 'Segoe UI', Roboto, sans-serif">
@@ -474,6 +478,10 @@
                         <line x1="70" y1="410" x2="870" y2="410"/>
                         <text x="60" y="415" text-anchor="end">$950K</text>
                     </g>
+
+                    <!-- Axis lines -->
+                    <line class="axis-line" x1="70" y1="40" x2="70" y2="410"/>
+                    <line class="axis-line" x1="70" y1="410" x2="870" y2="410"/>
 
                     <!-- Area under line -->
                     <path class="chart-area" d="M70,352.6 L203.3,264.6 L336.7,242.8 L470,158.5 L603.3,114.7 L736.7,142 L870,276.9 L870,410 L70,410 Z" fill="url(#areaFill)"/>
