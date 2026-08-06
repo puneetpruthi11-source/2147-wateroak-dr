@@ -21,6 +21,7 @@
             <li><a href="#about">About</a></li>
             <li><a href="#floorplan">Floor Plan</a></li>
             <li><a href="#details">Details</a></li>
+            <li><a href="#market">Market</a></li>
             <li><a href="#location">Location</a></li>
             <li><a href="#agent">Agent</a></li>
             <li><a href="#contact" class="nav-cta">Book a Showing</a></li>
@@ -441,6 +442,97 @@
                 <span class="detail-value">$5,130.52/year</span>
             </div>
         </div>
+    </div>
+</section>
+
+<!-- GTA Market Update -->
+<section class="section market-section" id="market">
+    <div class="container">
+        <h2 class="section-title">GTA Market Update</h2>
+        <p class="section-subtitle">Average selling price across the Greater Toronto Area, January &ndash; July 2026. A strong spring peaked in May before easing into summer &mdash; a useful backdrop for pricing decisions across Southwestern Ontario.</p>
+
+        <div class="market-card">
+            <div class="market-chart">
+                <svg viewBox="0 0 900 470" role="img" aria-labelledby="chartTitle chartDesc" preserveAspectRatio="xMidYMid meet">
+                    <title id="chartTitle">GTA average home selling price, January to July 2026</title>
+                    <desc id="chartDesc">A line chart showing the GTA average selling price rising from $973,289 in January to a peak of $1,069,700 in May, then easing to $1,003,956 in July.</desc>
+                    <defs>
+                        <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#a68b5b" stop-opacity="0.28"/>
+                            <stop offset="100%" stop-color="#a68b5b" stop-opacity="0"/>
+                        </linearGradient>
+                    </defs>
+
+                    <!-- Gridlines & Y axis labels -->
+                    <g class="chart-grid" font-size="14" fill="#8a857b" font-family="-apple-system, 'Segoe UI', Roboto, sans-serif">
+                        <line x1="70" y1="40"  x2="870" y2="40"/>
+                        <text x="60" y="45"  text-anchor="end">$1.10M</text>
+                        <line x1="70" y1="163.3" x2="870" y2="163.3"/>
+                        <text x="60" y="168.3" text-anchor="end">$1.05M</text>
+                        <line x1="70" y1="286.7" x2="870" y2="286.7"/>
+                        <text x="60" y="291.7" text-anchor="end">$1.00M</text>
+                        <line x1="70" y1="410" x2="870" y2="410"/>
+                        <text x="60" y="415" text-anchor="end">$950K</text>
+                    </g>
+
+                    <!-- Area under line -->
+                    <path class="chart-area" d="M70,352.6 L203.3,264.6 L336.7,242.8 L470,158.5 L603.3,114.7 L736.7,142 L870,276.9 L870,410 L70,410 Z" fill="url(#areaFill)"/>
+
+                    <!-- Trend line -->
+                    <polyline class="chart-line" points="70,352.6 203.3,264.6 336.7,242.8 470,158.5 603.3,114.7 736.7,142 870,276.9"
+                        fill="none" stroke="#a68b5b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+
+                    <!-- Data points -->
+                    <g class="chart-points" fill="#2d3a2e">
+                        <circle cx="70"    cy="352.6" r="5"/>
+                        <circle cx="203.3" cy="264.6" r="5"/>
+                        <circle cx="336.7" cy="242.8" r="5"/>
+                        <circle cx="470"   cy="158.5" r="5"/>
+                        <circle cx="603.3" cy="114.7" r="6" stroke="#a68b5b" stroke-width="3"/>
+                        <circle cx="736.7" cy="142"   r="5"/>
+                        <circle cx="870"   cy="276.9" r="5"/>
+                    </g>
+
+                    <!-- Value labels -->
+                    <g class="chart-values" font-size="15" font-weight="600" fill="#2d3a2e" text-anchor="middle" font-family="-apple-system, 'Segoe UI', Roboto, sans-serif">
+                        <text x="70"    y="335">$973K</text>
+                        <text x="203.3" y="247">$1.01M</text>
+                        <text x="336.7" y="225">$1.02M</text>
+                        <text x="470"   y="141">$1.05M</text>
+                        <text x="603.3" y="97">$1.07M</text>
+                        <text x="736.7" y="124">$1.06M</text>
+                        <text x="870"   y="259">$1.00M</text>
+                    </g>
+
+                    <!-- Month labels -->
+                    <g class="chart-months" font-size="15" fill="#666" text-anchor="middle" font-family="-apple-system, 'Segoe UI', Roboto, sans-serif">
+                        <text x="70"    y="440">Jan</text>
+                        <text x="203.3" y="440">Feb</text>
+                        <text x="336.7" y="440">Mar</text>
+                        <text x="470"   y="440">Apr</text>
+                        <text x="603.3" y="440">May</text>
+                        <text x="736.7" y="440">Jun</text>
+                        <text x="870"   y="440">Jul</text>
+                    </g>
+                </svg>
+            </div>
+
+            <div class="market-stats">
+                <div class="market-stat">
+                    <span class="market-stat-value">$1,069,700</span>
+                    <span class="market-stat-label">Spring peak (May)</span>
+                </div>
+                <div class="market-stat">
+                    <span class="market-stat-value">+3.2%</span>
+                    <span class="market-stat-label">Jan &rarr; Jul price growth</span>
+                </div>
+                <div class="market-stat">
+                    <span class="market-stat-value">6,770</span>
+                    <span class="market-stat-label">June sales &mdash; a near 2-year high</span>
+                </div>
+            </div>
+        </div>
+        <p class="market-source">Source: Toronto Regional Real Estate Board (TRREB) Market Watch, monthly average selling price across all home types, Jan&ndash;Jul 2026. For general market context only.</p>
     </div>
 </section>
 
