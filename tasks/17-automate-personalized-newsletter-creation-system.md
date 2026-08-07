@@ -1,0 +1,1 @@
+Automate personalized newsletter creation system
