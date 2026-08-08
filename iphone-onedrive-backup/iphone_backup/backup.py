@@ -9,7 +9,6 @@ from pathlib import Path
 
 from . import device
 from .config import Config, ensure_state_dir
-from .graph import OneDriveClient
 from .manifest import Manifest
 from .remote_paths import full_remote_path, remote_relative_path
 
@@ -108,15 +107,26 @@ def run_backup(cfg: Config, udid: str | None = None) -> BackupResult:
 
     device.wait_until_ready(udid)
 
-    client = OneDriveClient(
-        client_id=cfg.client_id,
-        tenant=cfg.tenant,
-        token_cache_path=cfg.token_cache_path,
-        chunk_size_bytes=cfg.chunk_size_bytes,
-    )
+    client = make_client(cfg)
 
     with manifest_for(cfg) as manifest:
         return backup_device(cfg, udid, client, manifest)
+
+
+def make_client(cfg: Config):
+    """Construct the upload client for the configured backend."""
+    if cfg.backend == "rclone":
+        from .rclone_backend import RcloneClient
+        return RcloneClient(cfg.rclone_remote)
+    if cfg.backend == "graph":
+        from .graph import OneDriveClient
+        return OneDriveClient(
+            client_id=cfg.client_id,
+            tenant=cfg.tenant,
+            token_cache_path=cfg.token_cache_path,
+            chunk_size_bytes=cfg.chunk_size_bytes,
+        )
+    raise ValueError(f"Unknown backend: {cfg.backend!r} (use 'rclone' or 'graph')")
 
 
 def manifest_for(cfg: Config) -> Manifest:

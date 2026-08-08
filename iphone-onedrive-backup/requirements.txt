@@ -1,2 +1,5 @@
+# The default rclone backend needs no Python packages beyond the standard library.
+# These are only required if you switch config `backend` to "graph"
+# (the built-in Microsoft Graph uploader):
 msal>=1.28,<2
 requests>=2.31,<3

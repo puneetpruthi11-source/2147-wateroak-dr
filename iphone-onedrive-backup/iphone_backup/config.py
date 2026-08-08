@@ -23,12 +23,24 @@ def default_state_dir() -> Path:
 
 @dataclass
 class Config:
-    # Azure "Application (client) ID" of the app registration you create.
+    # Which OneDrive upload engine to use:
+    #   "rclone" -> upload via the `rclone` CLI (recommended). No Azure app
+    #               registration needed; rclone ships its own OAuth client and
+    #               you sign in once with `iphone-backup login`.
+    #   "graph"  -> use the built-in Microsoft Graph uploader (needs your own
+    #               Azure "Application (client) ID" below).
+    backend: str = "rclone"
+
+    # Name of the configured rclone remote pointing at your OneDrive
+    # (used when backend == "rclone").
+    rclone_remote: str = "onedrive"
+
+    # Azure "Application (client) ID" — only needed when backend == "graph".
     # This is a public-client desktop app, so no client secret is needed.
     client_id: str = ""
 
     # "consumers" = personal Microsoft accounts (outlook.com/hotmail/live).
-    # "organizations" = work/school. "common" = both.
+    # "organizations" = work/school. "common" = both.  (graph backend only)
     tenant: str = "consumers"
 
     # Top-level OneDrive folder that everything is uploaded under.

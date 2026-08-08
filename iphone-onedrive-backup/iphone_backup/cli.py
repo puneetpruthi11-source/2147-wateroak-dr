@@ -13,13 +13,14 @@
 from __future__ import annotations
 
 import argparse
+import subprocess
 import sys
+import textwrap
 from pathlib import Path
 
 from . import __version__, device
 from .backup import manifest_for, run_backup
 from .config import Config, ensure_state_dir, load_config, save_config
-from .graph import AuthError, OneDriveClient
 from .logging_setup import setup_logging
 from .watcher import watch
 
@@ -32,15 +33,27 @@ def _load(args) -> Config:
 def cmd_init(args) -> int:
     cfg = _load(args)
     print("Setting up iPhone → OneDrive backup.\n")
-    if cfg.client_id:
-        print(f"Current Azure client ID: {cfg.client_id}")
-    client_id = input("Azure app (client) ID [see README to create one]: ").strip()
-    if client_id:
-        cfg.client_id = client_id
-    tenant = input(f"Account type [{cfg.tenant}] "
-                   "(consumers=personal, organizations=work, common=both): ").strip()
-    if tenant:
-        cfg.tenant = tenant
+
+    backend = input(
+        f"Upload backend [{cfg.backend}] "
+        "(rclone = no Azure needed, graph = your own Azure app): "
+    ).strip().lower()
+    if backend in ("rclone", "graph"):
+        cfg.backend = backend
+
+    if cfg.backend == "rclone":
+        remote = input(f"rclone remote name [{cfg.rclone_remote}]: ").strip()
+        if remote:
+            cfg.rclone_remote = remote
+    else:
+        client_id = input(f"Azure app (client) ID [{cfg.client_id or 'see README'}]: ").strip()
+        if client_id:
+            cfg.client_id = client_id
+        tenant = input(f"Account type [{cfg.tenant}] "
+                       "(consumers=personal, organizations=work, common=both): ").strip()
+        if tenant:
+            cfg.tenant = tenant
+
     base = input(f"OneDrive folder [{cfg.remote_base_folder}]: ").strip()
     if base:
         cfg.remote_base_folder = base
@@ -48,19 +61,77 @@ def cmd_init(args) -> int:
     ensure_state_dir(cfg)
     path = save_config(cfg)
     print(f"\nSaved config to {path}")
-    print("Next: run `iphone-backup login` to sign in to OneDrive.")
+    print("Next: run `iphone-backup login` to connect OneDrive.")
     return 0
 
 
 def cmd_login(args) -> int:
     cfg = _load(args)
     ensure_state_dir(cfg)
+    if cfg.backend == "rclone":
+        return _login_rclone(cfg)
+
+    from .graph import OneDriveClient
     client = OneDriveClient(cfg.client_id, cfg.tenant, cfg.token_cache_path)
     client.sign_in()
     me = client.whoami()
     who = me.get("userPrincipalName") or me.get("displayName") or "your account"
     print(f"Signed in as {who}. Token cached at {cfg.token_cache_path}")
     return 0
+
+
+def _login_rclone(cfg: Config) -> int:
+    from .rclone_backend import RcloneClient, RcloneError, rclone_available
+
+    if not rclone_available():
+        print("rclone isn't installed yet. Install it first:\n\n    brew install rclone\n")
+        return 1
+
+    print(textwrap.dedent(f"""
+        Launching `rclone config` to connect your OneDrive. Answer like this:
+
+          n)  New remote
+          name>            {cfg.rclone_remote}
+          Storage>         onedrive        (type it, or pick "Microsoft OneDrive")
+          client_id>       (leave blank — press Enter)
+          client_secret>   (leave blank — press Enter)
+          region>          1               (Microsoft Cloud Global)
+          Edit advanced config?   n
+          Use web browser to automatically authenticate?   y
+            -> your browser opens; sign in as your hotmail account and Accept
+          Your choice>     1               (OneDrive Personal or Business)
+          Chosen drive is correct?   y
+          Keep this "{cfg.rclone_remote}" remote?   y
+          q)  Quit config
+
+        (Nothing here touches Azure — rclone uses its own sign-in.)
+    """).strip() + "\n")
+
+    try:
+        input("Press Enter to launch `rclone config` (Ctrl-C to cancel)… ")
+    except (EOFError, KeyboardInterrupt):
+        print("\nCancelled.")
+        return 1
+
+    subprocess.run(["rclone", "config"])
+
+    try:
+        client = RcloneClient(cfg.rclone_remote)
+        if client.remote_exists():
+            print(f"\n✓ rclone remote '{cfg.rclone_remote}' is configured.")
+            try:
+                print(client.about())
+            except RcloneError:
+                pass
+            print("You're ready — run `iphone-backup doctor` to confirm everything.")
+            return 0
+        print(f"\n⚠ Didn't find a remote named '{cfg.rclone_remote}'. If you named it "
+              "something else, update it with:\n"
+              f"    iphone-backup init\n(or re-run `iphone-backup login`).")
+        return 1
+    except RcloneError as e:
+        print(f"\n✗ {e}")
+        return 1
 
 
 def cmd_doctor(args) -> int:
@@ -87,20 +158,40 @@ def cmd_doctor(args) -> int:
         ok = False
         print(f"✗ Device check failed: {e}")
 
-    if not cfg.client_id:
-        ok = False
-        print("✗ No Azure client_id set — run `iphone-backup init`")
-    else:
-        try:
-            client = OneDriveClient(cfg.client_id, cfg.tenant, cfg.token_cache_path)
-            me = client.whoami()
-            print(f"✓ OneDrive signed in as "
-                  f"{me.get('userPrincipalName') or me.get('displayName')}")
-        except AuthError:
+    if cfg.backend == "rclone":
+        from .rclone_backend import RcloneClient, RcloneError, rclone_available
+        if not rclone_available():
             ok = False
-            print("✗ Not signed in to OneDrive — run `iphone-backup login`")
-        except Exception as e:  # noqa: BLE001
-            print(f"… OneDrive check inconclusive: {e}")
+            print("✗ rclone not installed — brew install rclone")
+        else:
+            try:
+                client = RcloneClient(cfg.rclone_remote)
+                if client.remote_exists():
+                    client.about()  # verifies the token actually works
+                    print(f"✓ rclone remote '{cfg.rclone_remote}' connected to OneDrive")
+                else:
+                    ok = False
+                    print(f"✗ rclone remote '{cfg.rclone_remote}' not found — "
+                          "run `iphone-backup login`")
+            except RcloneError as e:
+                ok = False
+                print(f"✗ OneDrive (rclone) check failed: {e}")
+    else:
+        from .graph import AuthError, OneDriveClient
+        if not cfg.client_id:
+            ok = False
+            print("✗ No Azure client_id set — run `iphone-backup init`")
+        else:
+            try:
+                client = OneDriveClient(cfg.client_id, cfg.tenant, cfg.token_cache_path)
+                me = client.whoami()
+                print(f"✓ OneDrive signed in as "
+                      f"{me.get('userPrincipalName') or me.get('displayName')}")
+            except AuthError:
+                ok = False
+                print("✗ Not signed in to OneDrive — run `iphone-backup login`")
+            except Exception as e:  # noqa: BLE001
+                print(f"… OneDrive check inconclusive: {e}")
 
     print("\nAll good." if ok else "\nSome checks failed — see above.")
     return 0 if ok else 1
@@ -201,12 +292,15 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         return args.func(args)
-    except (AuthError, device.DeviceError) as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
     except KeyboardInterrupt:
         print("\nInterrupted.", file=sys.stderr)
         return 130
+    except RuntimeError as e:
+        # DeviceError, AuthError, UploadError, RcloneError all derive from this.
+        if args.verbose:
+            raise
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":
