@@ -5,8 +5,9 @@ ones to **Microsoft OneDrive**. Plug your phone into your Mac and the backup
 starts on its own — every time, only for photos it hasn't already saved.
 
 - 📷 Reads full-resolution **originals** (HEIC, JPEG, PNG, MOV, MP4, DNG …) over USB
+- 🔌 Talks to the iPhone with **pymobiledevice3** — pure Python, **no kernel extension, no macFUSE**
 - ☁️ Uploads to OneDrive via **rclone** — no Azure app registration, just one browser sign-in
-- 🔁 **Incremental** — a local database remembers what's uploaded, so each run only sends new photos
+- 🔁 **Incremental** — a local database remembers what's uploaded, so only new photos ever cross the cable
 - ⚡ **Auto-start on connect** — a background agent watches for your phone and fires the backup
 - 🗂️ Organizes uploads by capture date (`iPhone Backup/2024/03/IMG_0001.HEIC`)
 
@@ -15,13 +16,15 @@ starts on its own — every time, only for photos it hasn't already saved.
 ## How it works
 
 macOS doesn't let software read an iPhone's filesystem directly. This tool uses
-[`libimobiledevice`](https://libimobiledevice.org/) + `ifuse` — the same open
-protocol Finder/iTunes uses — to mount the phone's camera roll (`DCIM`) as a
-folder, then walks it and uploads anything new through
+[`pymobiledevice3`](https://github.com/doronz88/pymobiledevice3) — a pure-Python
+implementation of Apple's USB protocols that talks to the `usbmuxd` service
+built into macOS — to list and copy files from the camera roll (`DCIM`). New
+files are pulled to a temp folder and uploaded through
 [`rclone`](https://rclone.org/), which handles the OneDrive connection.
 
 ```
-iPhone (USB) → ifuse mount (/DCIM) → scan → skip already-uploaded → rclone → OneDrive
+iPhone (USB) → pymobiledevice3 (AFC) → list DCIM → skip already-uploaded
+                                                     → pull new file → rclone → OneDrive
                                                      ▲
                                           local manifest.db (SQLite)
 ```
@@ -29,12 +32,14 @@ iPhone (USB) → ifuse mount (/DCIM) → scan → skip already-uploaded → rclo
 A launchd background agent runs `iphone-backup watch`, which polls for a
 connected device and runs a backup the moment one appears.
 
-> **Why rclone?** Microsoft no longer lets personal (outlook/hotmail) accounts
-> register their own API app without a full Azure/M365 directory. rclone ships
-> its own sign-in, so you authorize once in the browser and never touch Azure.
-> (A built-in Microsoft Graph backend is still available — see
-> [Advanced](#advanced-use-the-built-in-graph-backend-instead) — if you'd rather
-> use your own Azure app.)
+> **Two deliberate choices, both to avoid painful setup:**
+> - **pymobiledevice3 instead of ifuse/macFUSE** — no kernel extension to approve,
+>   no reboot, no security downgrade. It installs as a normal pip dependency.
+> - **rclone instead of a custom Microsoft app** — Microsoft no longer lets
+>   personal (outlook/hotmail) accounts register an API app without a full
+>   Azure/M365 directory, so rclone's built-in sign-in is used instead. (A native
+>   Microsoft Graph backend is still available — see
+>   [Advanced](#advanced-use-the-built-in-graph-backend-instead).)
 
 ---
 
@@ -43,34 +48,29 @@ connected device and runs a backup the moment one appears.
 - macOS (Intel or Apple Silicon)
 - Python 3.10+
 - A Microsoft account with OneDrive
-- Homebrew
+- Homebrew (for `rclone`)
 
 ---
 
 ## Setup
 
-### 1. Install the tools
+### 1. Install rclone
+
+The only system tool you need is rclone (everything else installs via pip):
 
 ```bash
-brew install libimobiledevice ifuse rclone
+brew install rclone
 ```
-
-`ifuse` needs **macFUSE**. If `brew install ifuse` doesn't pull it in:
-
-```bash
-brew install --cask macfuse
-```
-
-Then open **System Settings → Privacy & Security** and click **Allow** for the
-macFUSE system extension (you may need to reboot once). This is a one-time step.
 
 ### 2. Install this tool
 
 ```bash
+# grab the code (Download ZIP from GitHub also works if you don't use git)
 git clone https://github.com/puneetpruthi11-source/iphone-onedrive-backup.git
 cd iphone-onedrive-backup
+
 python3 -m venv .venv && source .venv/bin/activate
-pip install -e .          # installs deps and the `iphone-backup` command
+pip install -e .          # installs pymobiledevice3 + the `iphone-backup` command
 ```
 
 ### 3. Configure and connect OneDrive
@@ -99,14 +99,16 @@ During `login`, `rclone config` asks a series of questions. The answers:
 
 `iphone-backup login` prints this same cheat-sheet before launching.
 
-### 4. Check everything
+### 4. Plug in your iPhone and check everything
+
+Connect the phone, unlock it, and tap **Trust This Computer** if asked. Then:
 
 ```bash
 iphone-backup doctor
 ```
 
-You want all ✓: tools installed, device connected + paired (unlock the phone and
-tap **Trust This Computer** the first time), and OneDrive reachable via rclone.
+You want all ✓: pymobiledevice3 found, device connected, and OneDrive reachable
+via rclone.
 
 ---
 
@@ -165,19 +167,22 @@ Config lives at `~/.config/iphone-onedrive-backup/config.json`
 | `rclone_remote` | `onedrive` | Name of your configured rclone remote |
 | `remote_base_folder` | `iPhone Backup` | Top OneDrive folder |
 | `organize_by` | `date` | `date` (YYYY/MM), `dcim` (mirror phone folders), or `flat` |
+| `source_subdir` | `DCIM` | Folder on the phone to read |
 | `poll_interval_seconds` | `5` | How often the watcher checks for a connected phone |
 | `include_extensions` | photo+video list | File types to back up |
 
-All local state (manifest, logs) stays in that same folder. Nothing secret is
-ever committed to git (see `.gitignore`). Your OneDrive token is stored by rclone
-in its own config (`~/.config/rclone/rclone.conf`).
+Local state (manifest, logs) stays in that same folder. Nothing secret is ever
+committed to git (see `.gitignore`). Your OneDrive token is stored by rclone in
+its own config (`~/.config/rclone/rclone.conf`).
 
 ---
 
 ## Notes & limitations
 
-- The first backup of a large library uploads one file per `rclone` call, so it
-  can take a while; subsequent connects only handle the handful of new photos.
+- Only **new** files are pulled off the phone and uploaded; a re-connect scans
+  the file list (cheap) and skips everything already backed up.
+- The first backup of a large library pulls each new file individually, so it
+  can take a while. Later connects only handle the handful of new photos.
 - **Capture date** for the `date` layout comes from the file's modification time
   on the phone, which matches when the photo was taken in virtually all cases.
 - **Deletions are not mirrored.** Removing a photo from your phone does not
@@ -196,7 +201,7 @@ native Microsoft Graph uploader:
 1. Register a public-client app in <https://entra.microsoft.com> (App
    registrations → New registration → *Personal Microsoft accounts only*),
    enable **Allow public client flows**, and copy the **Application (client) ID**.
-2. `pip install -r requirements.txt` (installs `msal` + `requests`).
+2. `pip install -e ".[graph]"` (installs `msal` + `requests`).
 3. `iphone-backup init` → choose backend `graph`, paste the client ID.
 4. `iphone-backup login` → device-code sign-in.
 
@@ -207,17 +212,17 @@ Everything else (device handling, dedup, auto-start) is identical.
 ## Development
 
 ```bash
-pip install -r requirements.txt pytest
-python -m pytest         # 28 tests, no Mac/phone/network needed
+pip install -e ".[graph]" pytest
+python -m pytest         # 34 tests, no Mac/phone/network needed
 ```
 
 | Module | Responsibility |
 |---|---|
-| `device.py` | libimobiledevice/ifuse: detect, pair, mount |
+| `device.py` | pymobiledevice3 CLI: detect, list, and pull files over USB |
 | `rclone_backend.py` | OneDrive upload via the rclone CLI (default) |
 | `graph.py` | OneDrive upload via Microsoft Graph (optional backend) |
 | `manifest.py` | SQLite dedup / incremental tracking |
-| `backup.py` | Orchestration: mount → scan → upload new |
+| `backup.py` | Orchestration: list → pull new → upload |
 | `watcher.py` | Poll for connect → trigger backup |
 | `installer.py` | launchd agent install |
 | `remote_paths.py` | Pure path/chunk helpers (fully unit-tested) |

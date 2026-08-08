@@ -1,8 +1,9 @@
-"""Orchestrate a single backup pass: mount phone -> scan -> upload new files."""
+"""Orchestrate a single backup pass: list phone media -> pull new -> upload."""
 
 from __future__ import annotations
 
 import logging
+import tempfile
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -31,59 +32,50 @@ class BackupResult:
         )
 
 
-def _iter_media_files(root: Path, include_exts: set[str]):
-    """Yield (absolute_path, relative_path_str) for backup-eligible files."""
-    for path in sorted(root.rglob("*")):
-        if not path.is_file():
-            continue
-        name = path.name
-        if name.startswith("._") or name == ".DS_Store":
-            continue  # macOS/AppleDouble junk
-        if path.suffix.lower() not in include_exts:
-            continue
-        yield path, str(path.relative_to(root))
+def backup_device(cfg: Config, udid: str, client, manifest: Manifest) -> BackupResult:
+    """Back up one connected device. Assumes it is unlocked, trusted, and ready.
 
-
-def backup_device(cfg: Config, udid: str, client: OneDriveClient,
-                  manifest: Manifest) -> BackupResult:
-    """Back up one connected device. Assumes it is paired and ready."""
+    Flow: list the phone's media paths (cheap), skip ones already uploaded, and
+    for each new file: copy it off the phone to a temp file, upload it, record
+    it, delete the temp. Only new files ever cross the USB cable or the network.
+    """
     result = BackupResult(device_name=device.device_name(udid))
     include_exts = {e.lower() for e in cfg.include_extensions}
 
-    with device.mounted_media(udid, cfg.mount_path) as mount:
-        source_root = mount / cfg.source_subdir
-        if not source_root.exists():
-            # Some layouts expose DCIM directly at the mount root.
-            source_root = mount
-        log.info("Scanning %s", source_root)
+    paths = device.list_media_paths(udid, cfg.source_subdir, include_exts)
+    result.scanned = len(paths)
+    log.info("%s: %d media files on device", result.device_name, len(paths))
 
-        for abs_path, rel in _iter_media_files(source_root, include_exts):
-            result.scanned += 1
-            try:
-                st = abs_path.stat()
-            except OSError as e:
-                result.failed += 1
-                result.errors.append(f"{rel}: stat failed: {e}")
-                continue
-
-            if manifest.is_uploaded(rel, st.st_size, st.st_mtime_ns):
+    with tempfile.TemporaryDirectory(prefix="iphone-backup-") as tmp:
+        tmpdir = Path(tmp)
+        for remote_src in paths:
+            if manifest.has_done(remote_src):
                 result.skipped += 1
                 continue
 
-            captured = datetime.fromtimestamp(st.st_mtime)
-            remote_rel = remote_relative_path(rel, captured, cfg.organize_by)
-            remote_path = full_remote_path(cfg.remote_base_folder, remote_rel)
-
+            local = tmpdir / remote_src.rsplit("/", 1)[-1]
             try:
-                client.upload_file(abs_path, remote_path)
-                manifest.mark_done(rel, st.st_size, st.st_mtime_ns, remote_path)
+                device.pull_file(udid, remote_src, local)
+                st = local.stat()
+                captured = datetime.fromtimestamp(st.st_mtime)
+                remote_rel = remote_relative_path(remote_src, captured, cfg.organize_by)
+                remote_path = full_remote_path(cfg.remote_base_folder, remote_rel)
+
+                client.upload_file(local, remote_path)
+                manifest.mark_done(remote_src, st.st_size, st.st_mtime_ns, remote_path)
                 result.uploaded += 1
-                log.info("Uploaded %s -> %s", rel, remote_path)
+                log.info("Uploaded %s -> %s", remote_src, remote_path)
             except Exception as e:  # noqa: BLE001 - record and keep going
-                manifest.mark_failed(rel, st.st_size, st.st_mtime_ns, str(e))
+                manifest.mark_failed(remote_src, 0, 0, str(e))
                 result.failed += 1
-                result.errors.append(f"{rel}: {e}")
-                log.warning("Failed %s: %s", rel, e)
+                result.errors.append(f"{remote_src}: {e}")
+                log.warning("Failed %s: %s", remote_src, e)
+            finally:
+                if local.exists():
+                    try:
+                        local.unlink()
+                    except OSError:
+                        pass
 
     return result
 

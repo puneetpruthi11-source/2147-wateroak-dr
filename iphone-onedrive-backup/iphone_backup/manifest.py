@@ -61,6 +61,17 @@ class Manifest:
             and row["mtime_ns"] == mtime_ns
         )
 
+    def has_done(self, source_key: str) -> bool:
+        """True if this device path was already uploaded successfully.
+
+        Used when we know the file's identity (its path) before downloading it,
+        so we can skip the transfer entirely. New photos always have new paths.
+        """
+        row = self._conn.execute(
+            "SELECT status FROM uploads WHERE source_key = ?", (source_key,)
+        ).fetchone()
+        return row is not None and row["status"] == "done"
+
     def mark_done(
         self,
         source_key: str,

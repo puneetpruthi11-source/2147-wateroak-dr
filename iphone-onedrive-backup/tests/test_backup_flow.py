@@ -1,6 +1,7 @@
-"""Exercise the scan/dedup/upload loop with the phone and network mocked out."""
+"""Exercise the list/dedup/pull/upload loop with the phone and network mocked."""
 
-from contextlib import contextmanager
+import shutil
+from pathlib import Path
 
 from iphone_backup import backup as backup_mod
 from iphone_backup import device as device_mod
@@ -13,34 +14,45 @@ class FakeClient:
         self.uploaded = []
 
     def upload_file(self, local_path, remote_path):
-        self.uploaded.append((str(local_path), remote_path))
+        # Assert the file really exists at upload time (was pulled).
+        assert Path(local_path).is_file(), f"missing {local_path}"
+        self.uploaded.append((Path(local_path).name, remote_path))
         return {"id": "fake"}
 
 
-def _make_dcim(tmp_path):
+def _make_phone(tmp_path):
+    """A fake on-device DCIM tree living on the local disk."""
     dcim = tmp_path / "phone" / "DCIM" / "100APPLE"
     dcim.mkdir(parents=True)
     (dcim / "IMG_0001.HEIC").write_bytes(b"a" * 10)
     (dcim / "IMG_0002.JPG").write_bytes(b"b" * 20)
     (dcim / "VID_0003.MOV").write_bytes(b"c" * 30)
-    (dcim / "._IMG_0001.HEIC").write_bytes(b"junk")   # AppleDouble, must skip
-    (dcim / "notes.txt").write_bytes(b"nope")          # wrong extension, skip
     return tmp_path / "phone"
 
 
-def _patch(monkeypatch, mount_root):
-    @contextmanager
-    def fake_mount(udid, mount_point):
-        yield mount_root
+def _patch_device(monkeypatch, phone_root, exts):
+    """Wire device.list_media_paths/pull_file/device_name to the fake tree."""
+    media = ["DCIM/100APPLE/IMG_0001.HEIC",
+             "DCIM/100APPLE/IMG_0002.JPG",
+             "DCIM/100APPLE/VID_0003.MOV"]
 
-    monkeypatch.setattr(device_mod, "mounted_media", fake_mount)
-    monkeypatch.setattr(backup_mod.device, "mounted_media", fake_mount)
+    def fake_list(udid, subdir, include_exts):
+        return list(media)
+
+    def fake_pull(udid, remote_path, local_path, timeout=3600):
+        src = phone_root / remote_path
+        Path(local_path).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, local_path)
+
+    monkeypatch.setattr(backup_mod.device, "list_media_paths", fake_list)
+    monkeypatch.setattr(backup_mod.device, "pull_file", fake_pull)
     monkeypatch.setattr(backup_mod.device, "device_name", lambda udid: "Test iPhone")
+    return media
 
 
-def test_first_pass_uploads_media_only(tmp_path, monkeypatch):
-    mount_root = _make_dcim(tmp_path)
-    _patch(monkeypatch, mount_root)
+def test_first_pass_uploads_all_media(tmp_path, monkeypatch):
+    phone = _make_phone(tmp_path)
+    _patch_device(monkeypatch, phone, None)
 
     cfg = load_config(tmp_path / "state")
     cfg.remote_base_folder = "iPhone Backup"
@@ -49,17 +61,15 @@ def test_first_pass_uploads_media_only(tmp_path, monkeypatch):
     with Manifest(cfg.manifest_path) as manifest:
         result = backup_mod.backup_device(cfg, "UDID", client, manifest)
 
-    assert result.uploaded == 3          # 3 media files
-    assert result.scanned == 3           # junk + txt excluded from scan entirely
+    assert result.uploaded == 3
+    assert result.scanned == 3
     assert result.failed == 0
-    remote_paths = sorted(rp for _, rp in client.uploaded)
-    assert all(p.startswith("iPhone Backup/") for p in remote_paths)
+    assert all(rp.startswith("iPhone Backup/") for _, rp in client.uploaded)
 
 
 def test_second_pass_skips_already_uploaded(tmp_path, monkeypatch):
-    mount_root = _make_dcim(tmp_path)
-    _patch(monkeypatch, mount_root)
-
+    phone = _make_phone(tmp_path)
+    _patch_device(monkeypatch, phone, None)
     cfg = load_config(tmp_path / "state")
 
     with Manifest(cfg.manifest_path) as manifest:
@@ -75,15 +85,16 @@ def test_second_pass_skips_already_uploaded(tmp_path, monkeypatch):
 
 
 def test_new_photo_after_first_pass_is_picked_up(tmp_path, monkeypatch):
-    mount_root = _make_dcim(tmp_path)
-    _patch(monkeypatch, mount_root)
+    phone = _make_phone(tmp_path)
+    media = _patch_device(monkeypatch, phone, None)
     cfg = load_config(tmp_path / "state")
 
     with Manifest(cfg.manifest_path) as manifest:
         backup_mod.backup_device(cfg, "UDID", FakeClient(), manifest)
 
-    # Simulate a newly taken photo.
-    (mount_root / "DCIM" / "100APPLE" / "IMG_0004.HEIC").write_bytes(b"d" * 40)
+    # A newly taken photo appears both on disk and in the device listing.
+    (phone / "DCIM" / "100APPLE" / "IMG_0004.HEIC").write_bytes(b"d" * 40)
+    media.append("DCIM/100APPLE/IMG_0004.HEIC")
 
     client = FakeClient()
     with Manifest(cfg.manifest_path) as manifest:
@@ -91,17 +102,17 @@ def test_new_photo_after_first_pass_is_picked_up(tmp_path, monkeypatch):
 
     assert result.uploaded == 1
     assert result.skipped == 3
-    assert client.uploaded[0][0].endswith("IMG_0004.HEIC")
+    assert client.uploaded[0][0] == "IMG_0004.HEIC"
 
 
 def test_upload_failure_is_recorded_and_loop_continues(tmp_path, monkeypatch):
-    mount_root = _make_dcim(tmp_path)
-    _patch(monkeypatch, mount_root)
+    phone = _make_phone(tmp_path)
+    _patch_device(monkeypatch, phone, None)
     cfg = load_config(tmp_path / "state")
 
     class FlakyClient(FakeClient):
         def upload_file(self, local_path, remote_path):
-            if "IMG_0002" in str(local_path):
+            if "IMG_0002" in Path(local_path).name:
                 raise RuntimeError("boom")
             return super().upload_file(local_path, remote_path)
 
@@ -111,3 +122,7 @@ def test_upload_failure_is_recorded_and_loop_continues(tmp_path, monkeypatch):
     assert result.uploaded == 2
     assert result.failed == 1
     assert any("IMG_0002" in e for e in result.errors)
+
+    # A failed file is retried (not skipped) on the next pass.
+    with Manifest(cfg.manifest_path) as manifest:
+        assert not manifest.has_done("DCIM/100APPLE/IMG_0002.JPG")

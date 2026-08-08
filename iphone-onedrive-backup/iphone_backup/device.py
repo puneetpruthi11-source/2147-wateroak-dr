@@ -1,21 +1,25 @@
-"""Talk to a USB-connected iPhone on macOS via libimobiledevice + ifuse.
+"""Talk to a USB-connected iPhone on macOS via pymobiledevice3.
 
-Requires (install with Homebrew):
-    brew install libimobiledevice ifuse
-    # ifuse also needs macFUSE: https://osxfuse.github.io  (one-time approval
-    # in System Settings -> Privacy & Security after install)
+pymobiledevice3 is a pure-Python implementation of Apple's device protocols.
+It talks to the usbmuxd daemon that ships built into macOS, so there is **no
+kernel extension, no macFUSE, and no libimobiledevice** to install — it comes
+in as a normal pip dependency of this package.
 
-Nothing here is Apple-private: libimobiledevice speaks the same USB protocol
-iTunes/Finder uses, and ifuse exposes the phone's media area (which contains
-DCIM) as a normal folder we can copy from.
+We drive its command-line interface (stable across versions) rather than its
+Python API (which is async and changes more often). The camera roll lives under
+the AFC media root at ``DCIM``.
+
+Install (handled automatically by `pip install -e .`):
+    pip install pymobiledevice3
 """
 
 from __future__ import annotations
 
+import json
+import re
 import shutil
 import subprocess
 import time
-from contextlib import contextmanager
 from pathlib import Path
 
 
@@ -23,113 +27,145 @@ class DeviceError(RuntimeError):
     pass
 
 
-REQUIRED_TOOLS = ["idevice_id", "ideviceinfo", "idevicepair", "ifuse"]
+PMD = "pymobiledevice3"
+REQUIRED_TOOLS = [PMD]
+
+# iPhone UDIDs are either 40 hex chars (legacy) or 8hex-16hex (modern).
+_UDID_RE = re.compile(r"[0-9A-Fa-f]{8}-[0-9A-Fa-f]{16}|[0-9a-f]{40}")
+
+_TRUST_HINTS = (
+    "pair", "trust", "lockdown", "passwordprotected", "not paired",
+    "invalidhostid", "sessioninactive", "please enter", "locked",
+)
 
 
 def check_tools() -> list[str]:
-    """Return the list of required CLI tools that are missing from PATH."""
+    """Return the required CLI tools missing from PATH (empty means all present)."""
     return [t for t in REQUIRED_TOOLS if shutil.which(t) is None]
 
 
-def _run(cmd: list[str], timeout: int = 30) -> subprocess.CompletedProcess:
+def _run(args: list[str], timeout: int = 120) -> subprocess.CompletedProcess:
     try:
-        return subprocess.run(
-            cmd, capture_output=True, text=True, timeout=timeout, check=False
-        )
+        return subprocess.run(args, capture_output=True, text=True,
+                              timeout=timeout, check=False)
     except FileNotFoundError as e:
-        raise DeviceError(f"Required tool not found: {cmd[0]}. Run: brew install libimobiledevice ifuse") from e
+        raise DeviceError(
+            f"'{args[0]}' not found. Install it with: pip install pymobiledevice3"
+        ) from e
     except subprocess.TimeoutExpired as e:
-        raise DeviceError(f"Command timed out: {' '.join(cmd)}") from e
+        raise DeviceError(f"Command timed out: {' '.join(args)}") from e
+
+
+def _looks_like_trust_error(msg: str) -> bool:
+    m = msg.lower()
+    return any(h in m for h in _TRUST_HINTS)
 
 
 def list_connected_udids() -> list[str]:
-    """UDIDs of iPhones/iPads currently connected over USB (empty if none)."""
-    proc = _run(["idevice_id", "-l"])
-    if proc.returncode != 0:
-        # No device or usbmuxd not running -> treat as "none connected".
+    """UDIDs of iPhones/iPads connected over USB (empty if none / no usbmuxd)."""
+    proc = _run([PMD, "usbmux", "list", "--usb", "--simple"], timeout=30)
+    out = (proc.stdout or "").strip()
+    if not out:
         return []
-    return [line.strip() for line in proc.stdout.splitlines() if line.strip()]
+    try:
+        data = json.loads(out)
+        if isinstance(data, list):
+            return [str(x) for x in data if x]
+    except json.JSONDecodeError:
+        pass
+    found = _UDID_RE.findall(out)
+    if found:
+        return found
+    return [ln.strip() for ln in out.splitlines() if ln.strip()]
 
 
 def device_name(udid: str) -> str:
-    proc = _run(["ideviceinfo", "-u", udid, "-k", "DeviceName"])
-    name = proc.stdout.strip()
-    return name or udid
+    """Best-effort friendly name for a device; falls back to the UDID."""
+    try:
+        proc = _run([PMD, "usbmux", "list", "--usb"], timeout=30)
+        data = json.loads(proc.stdout)
+        norm = udid.replace("-", "")
+        for d in data if isinstance(data, list) else []:
+            if not isinstance(d, dict):
+                continue
+            if norm in json.dumps(d).replace("-", ""):
+                for k in ("DeviceName", "Name", "name"):
+                    if d.get(k):
+                        return str(d[k])
+    except Exception:  # noqa: BLE001 - name is cosmetic
+        pass
+    return udid
 
 
-def is_paired(udid: str) -> bool:
-    proc = _run(["idevicepair", "-u", udid, "validate"])
-    return proc.returncode == 0
+def wait_until_ready(udid: str, timeout: int = 120, interval: float = 3.0) -> None:
+    """Block until the device answers AFC (implies paired + unlocked + trusted).
 
-
-def pair(udid: str) -> None:
-    """Attempt to pair. The user must tap 'Trust' on an unlocked phone."""
-    proc = _run(["idevicepair", "-u", udid, "pair"], timeout=60)
-    if proc.returncode != 0:
-        msg = (proc.stderr or proc.stdout).strip()
-        raise DeviceError(
-            f"Pairing failed for {udid}: {msg}\n"
-            "Unlock the iPhone and tap 'Trust This Computer', then retry."
-        )
-
-
-def wait_until_ready(udid: str, timeout: int = 60, interval: float = 2.0) -> None:
-    """Block until the device is paired and reachable, pairing if needed."""
+    Raises a clear, actionable DeviceError if the phone needs to be trusted.
+    """
     deadline = time.monotonic() + timeout
-    last_err = ""
+    last = ""
     while time.monotonic() < deadline:
         if udid not in list_connected_udids():
-            last_err = "device disconnected"
-        elif is_paired(udid):
-            return
+            last = "device disconnected"
         else:
-            try:
-                pair(udid)
-                if is_paired(udid):
-                    return
-            except DeviceError as e:
-                last_err = str(e)
+            proc = _run([PMD, "afc", "ls", "DCIM", "--udid", udid], timeout=30)
+            if proc.returncode == 0:
+                return
+            last = (proc.stderr or proc.stdout).strip()
+            if _looks_like_trust_error(last):
+                raise DeviceError(
+                    "The iPhone is locked or hasn't trusted this Mac. Unlock it, tap "
+                    "'Trust This Computer' (enter your passcode), then reconnect."
+                )
         time.sleep(interval)
-    raise DeviceError(f"Device {udid} not ready after {timeout}s: {last_err}")
+    raise DeviceError(f"Device {udid} not ready after {timeout}s: {last}")
 
 
-@contextmanager
-def mounted_media(udid: str, mount_point: Path):
-    """Mount the iPhone's media area at mount_point for the duration of the block.
+def list_media_paths(udid: str, subdir: str, include_exts) -> list[str]:
+    """Return device paths of backup-eligible media files under ``subdir``.
 
-    Yields the Path to the mount. The camera roll is at <mount>/DCIM.
-    Always unmounts on exit, even on error.
+    Paths are rooted at the AFC media root (e.g. ``DCIM/100APPLE/IMG_0001.HEIC``)
+    and can be passed straight back to :func:`pull_file`.
     """
-    mount_point = Path(mount_point)
-    mount_point.mkdir(parents=True, exist_ok=True)
-
-    # Clean up a stale mount if one is lingering.
-    _unmount(mount_point)
-
-    proc = _run(["ifuse", "--udid", udid, str(mount_point)], timeout=60)
+    proc = _run([PMD, "afc", "ls", "-r", subdir, "--udid", udid], timeout=900)
     if proc.returncode != 0:
         msg = (proc.stderr or proc.stdout).strip()
-        raise DeviceError(
-            f"ifuse mount failed: {msg}\n"
-            "Make sure macFUSE is installed and approved in "
-            "System Settings -> Privacy & Security, and the phone is unlocked."
-        )
+        if _looks_like_trust_error(msg):
+            raise DeviceError(
+                "The iPhone is locked or hasn't trusted this Mac. Unlock it and tap "
+                "'Trust This Computer', then retry."
+            )
+        raise DeviceError(f"Could not list photos on the device: {msg[:300]}")
 
-    # Give the FUSE mount a moment to become readable.
-    for _ in range(10):
-        if (mount_point / "DCIM").exists() or any(mount_point.iterdir()):
-            break
-        time.sleep(0.5)
+    exts = {e.lower() for e in include_exts}
+    paths: list[str] = []
+    for line in proc.stdout.splitlines():
+        p = line.strip()
+        if not p:
+            continue
+        base = p.rsplit("/", 1)[-1]
+        if base.startswith("._") or base == ".DS_Store":
+            continue
+        dot = base.rfind(".")
+        if dot <= 0:
+            continue
+        if base[dot:].lower() in exts:
+            paths.append(p)
+    return paths
 
-    try:
-        yield mount_point
-    finally:
-        _unmount(mount_point)
 
+def pull_file(udid: str, remote_path: str, local_path: Path, timeout: int = 3600) -> None:
+    """Copy one file off the device to ``local_path`` (which must not be a dir).
 
-def _unmount(mount_point: Path) -> None:
-    # macOS uses `umount`; `diskutil unmount` is a fallback for FUSE volumes.
-    for cmd in (["umount", str(mount_point)], ["diskutil", "unmount", str(mount_point)]):
-        proc = _run(cmd, timeout=30)
-        if proc.returncode == 0:
-            return
+    pymobiledevice3 streams large files in chunks and sets the local mtime to
+    match the device, so we can read the capture time from the pulled file.
+    """
+    local_path = Path(local_path)
+    local_path.parent.mkdir(parents=True, exist_ok=True)
+    proc = _run(
+        [PMD, "afc", "pull", remote_path, str(local_path), "--udid", udid],
+        timeout=timeout,
+    )
+    if proc.returncode != 0 or not local_path.exists():
+        msg = (proc.stderr or proc.stdout).strip()
+        raise DeviceError(f"Failed to copy {remote_path}: {msg[:300]}")

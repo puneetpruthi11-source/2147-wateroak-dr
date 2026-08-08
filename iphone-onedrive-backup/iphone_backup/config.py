@@ -1,7 +1,7 @@
 """Configuration loading and default paths.
 
 Config lives at ~/.config/iphone-onedrive-backup/config.json by default.
-State (token cache, manifest DB, logs, mount point) lives alongside it.
+State (token cache, manifest DB, logs) lives alongside it.
 """
 
 from __future__ import annotations
@@ -68,9 +68,8 @@ class Config:
         ".mov", ".mp4", ".m4v", ".avi",
     ])
 
-    # Where the phone gets mounted and where state is kept. Filled in on load.
+    # Where state (config, token, manifest, logs) is kept. Filled in on load.
     state_dir: str = ""
-    mount_point: str = ""
 
     @property
     def state_path(self) -> Path:
@@ -87,10 +86,6 @@ class Config:
     @property
     def log_path(self) -> Path:
         return self.state_path / "backup.log"
-
-    @property
-    def mount_path(self) -> Path:
-        return Path(self.mount_point)
 
     @property
     def chunk_size_bytes(self) -> int:
@@ -115,8 +110,6 @@ def load_config(state_dir: Path | None = None) -> Config:
 
     if not cfg.state_dir:
         cfg.state_dir = str(sd)
-    if not cfg.mount_point:
-        cfg.mount_point = str(Path(cfg.state_dir) / "mnt")
     return cfg
 
 
@@ -130,4 +123,3 @@ def save_config(cfg: Config) -> Path:
 
 def ensure_state_dir(cfg: Config) -> None:
     cfg.state_path.mkdir(parents=True, exist_ok=True)
-    cfg.mount_path.mkdir(parents=True, exist_ok=True)

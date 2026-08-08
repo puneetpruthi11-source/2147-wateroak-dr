@@ -4,11 +4,14 @@ version = "1.0.0"
 description = "Automatically back up iPhone photos and videos to OneDrive over USB on macOS."
 readme = "README.md"
 requires-python = ">=3.10"
-# The default rclone backend needs no third-party Python packages.
-dependencies = []
+# pymobiledevice3 reads the iPhone over USB (pure Python, no kernel extension).
+# The default rclone upload backend needs no extra Python packages.
+dependencies = [
+    "pymobiledevice3>=10,<11",
+]
 
 [project.optional-dependencies]
-# Only needed if you switch to the built-in Microsoft Graph backend.
+# Only needed if you switch to the built-in Microsoft Graph upload backend.
 graph = [
     "msal>=1.28,<2",
     "requests>=2.31,<3",

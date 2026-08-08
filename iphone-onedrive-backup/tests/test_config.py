@@ -4,7 +4,8 @@ from iphone_backup.config import load_config, save_config
 def test_defaults_fill_in_paths(tmp_path):
     cfg = load_config(tmp_path)
     assert cfg.state_dir == str(tmp_path)
-    assert cfg.mount_point.endswith("/mnt")
+    assert cfg.backend == "rclone"
+    assert cfg.rclone_remote == "onedrive"
     assert cfg.tenant == "consumers"
     assert cfg.chunk_size_bytes == 10 * 1024 * 1024
 

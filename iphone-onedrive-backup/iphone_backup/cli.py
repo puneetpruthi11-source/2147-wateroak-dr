@@ -142,16 +142,16 @@ def cmd_doctor(args) -> int:
     if missing:
         ok = False
         print("✗ Missing tools:", ", ".join(missing))
-        print("  Fix: brew install libimobiledevice ifuse  (+ macFUSE for ifuse)")
+        print("  Fix: pip install pymobiledevice3  (usually installed with this app)")
     else:
-        print("✓ libimobiledevice + ifuse found")
+        print("✓ pymobiledevice3 found")
 
     try:
         udids = device.list_connected_udids()
         if udids:
             for u in udids:
-                paired = "paired" if device.is_paired(u) else "NOT paired (tap Trust)"
-                print(f"✓ Device connected: {device.device_name(u)} [{paired}]")
+                print(f"✓ Device connected: {device.device_name(u)}")
+                print("  (unlock it and tap 'Trust This Computer' if prompted)")
         else:
             print("… No iPhone connected right now (connect one to back up)")
     except device.DeviceError as e:
