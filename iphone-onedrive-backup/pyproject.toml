@@ -1,0 +1,23 @@
+[project]
+name = "iphone-onedrive-backup"
+version = "1.0.0"
+description = "Automatically back up iPhone photos and videos to OneDrive over USB on macOS."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "msal>=1.28,<2",
+    "requests>=2.31,<3",
+]
+
+[project.scripts]
+iphone-backup = "iphone_backup.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["iphone_backup"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+build/
+dist/
+
+# Never commit secrets or local state
+config.json
+token_cache.bin
+manifest.db
+*.log
+mnt/

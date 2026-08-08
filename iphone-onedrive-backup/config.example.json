@@ -1,0 +1,13 @@
+{
+  "client_id": "PASTE-YOUR-AZURE-APP-CLIENT-ID-HERE",
+  "tenant": "consumers",
+  "remote_base_folder": "iPhone Backup",
+  "organize_by": "date",
+  "source_subdir": "DCIM",
+  "chunk_size_mib": 10,
+  "poll_interval_seconds": 5,
+  "include_extensions": [
+    ".jpg", ".jpeg", ".png", ".heic", ".heif", ".gif", ".tiff", ".dng",
+    ".mov", ".mp4", ".m4v", ".avi"
+  ]
+}
