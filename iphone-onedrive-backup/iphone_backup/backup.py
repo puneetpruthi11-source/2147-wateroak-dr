@@ -23,13 +23,17 @@ class BackupResult:
     uploaded: int = 0
     skipped: int = 0
     failed: int = 0
+    disconnected: bool = False
     errors: list[str] = field(default_factory=list)
 
     def summary(self) -> str:
-        return (
+        base = (
             f"{self.device_name}: {self.uploaded} uploaded, {self.skipped} already "
             f"backed up, {self.failed} failed (of {self.scanned} media files)."
         )
+        if self.disconnected:
+            base += " Stopped early — iPhone disconnected; reconnect to resume."
+        return base
 
 
 def backup_device(cfg: Config, udid: str, client, manifest: Manifest) -> BackupResult:
@@ -66,6 +70,13 @@ def backup_device(cfg: Config, udid: str, client, manifest: Manifest) -> BackupR
                 result.uploaded += 1
                 log.info("Uploaded %s -> %s", remote_src, remote_path)
             except Exception as e:  # noqa: BLE001 - record and keep going
+                # If the phone dropped off USB, stop now instead of failing every
+                # remaining file the same way. Nothing uploaded so far is lost.
+                if device.is_disconnect_error(str(e)):
+                    result.disconnected = True
+                    result.errors.append("iPhone disconnected — stopped; reconnect to resume.")
+                    log.warning("iPhone disconnected mid-backup; stopping. Reconnect to resume.")
+                    break
                 manifest.mark_failed(remote_src, 0, 0, str(e))
                 result.failed += 1
                 result.errors.append(f"{remote_src}: {e}")

@@ -63,3 +63,11 @@ def test_list_media_paths_trust_error(monkeypatch):
 def test_check_tools_missing(monkeypatch):
     monkeypatch.setattr(dev.shutil, "which", lambda name: None)
     assert dev.check_tools() == ["pymobiledevice3"]
+
+
+def test_is_disconnect_error():
+    assert dev.is_disconnect_error("ERROR Device not found: 00008130-000915A")
+    assert dev.is_disconnect_error("Connection reset by peer")
+    assert dev.is_disconnect_error("Broken pipe")
+    assert not dev.is_disconnect_error("rclone upload failed: quota exceeded")
+    assert not dev.is_disconnect_error("")

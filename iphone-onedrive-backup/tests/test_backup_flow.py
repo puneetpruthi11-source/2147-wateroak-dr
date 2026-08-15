@@ -126,3 +126,44 @@ def test_upload_failure_is_recorded_and_loop_continues(tmp_path, monkeypatch):
     # A failed file is retried (not skipped) on the next pass.
     with Manifest(cfg.manifest_path) as manifest:
         assert not manifest.has_done("DCIM/100APPLE/IMG_0002.JPG")
+
+
+def test_disconnect_stops_early_and_keeps_progress(tmp_path, monkeypatch):
+    phone = _make_phone(tmp_path)
+    media = _patch_device(monkeypatch, phone, None)
+    cfg = load_config(tmp_path / "state")
+
+    # Pull works for the first file, then the phone "disconnects".
+    real_pull = device_mod.pull_file
+    calls = {"n": 0}
+
+    def flaky_pull(udid, remote_path, local_path, timeout=3600):
+        calls["n"] += 1
+        if calls["n"] >= 2:
+            raise device_mod.DeviceError(
+                f"Failed to copy {remote_path}: Device not found: 00008130-000915A"
+            )
+        src = phone / remote_path
+        Path(local_path).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, local_path)
+
+    monkeypatch.setattr(backup_mod.device, "pull_file", flaky_pull)
+
+    client = FakeClient()
+    with Manifest(cfg.manifest_path) as manifest:
+        result = backup_mod.backup_device(cfg, "UDID", client, manifest)
+
+    assert result.uploaded == 1          # first file made it
+    assert result.disconnected is True   # detected the drop
+    assert result.failed == 0            # remaining files NOT marked failed — just stopped
+    assert "disconnect" in result.summary().lower()
+
+    # On reconnect, the first file is skipped and the rest resume.
+    monkeypatch.setattr(backup_mod.device, "pull_file",
+                        lambda u, r, l, timeout=3600: shutil.copy2(phone / r, l))
+    client2 = FakeClient()
+    with Manifest(cfg.manifest_path) as manifest:
+        result2 = backup_mod.backup_device(cfg, "UDID", client2, manifest)
+
+    assert result2.skipped == 1
+    assert result2.uploaded == 2

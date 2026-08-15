@@ -38,6 +38,20 @@ _TRUST_HINTS = (
     "invalidhostid", "sessioninactive", "please enter", "locked",
 )
 
+# Substrings that mean the device went away mid-operation (unplugged, slept,
+# rebooted, or the USB link dropped) — as opposed to a per-file problem.
+_DISCONNECT_HINTS = (
+    "device not found", "no device found", "not connected", "muxerror",
+    "connectionterminated", "connection refused", "broken pipe",
+    "connection reset", "device disconnected",
+)
+
+
+def is_disconnect_error(msg: str) -> bool:
+    """True if an error means the iPhone dropped off USB (not a file-level error)."""
+    m = (msg or "").lower()
+    return any(h in m for h in _DISCONNECT_HINTS)
+
 
 def check_tools() -> list[str]:
     """Return the required CLI tools missing from PATH (empty means all present)."""
