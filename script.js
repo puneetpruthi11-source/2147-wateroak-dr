@@ -81,8 +81,80 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'ArrowLeft') prevImage();
 });
 
+// ===== Lead attribution =====
+// Stamps every form submission with where the visitor came from, so an emailed
+// lead can be traced back to the ad that produced it. Values are read from the
+// landing URL (UTM tags / fbclid) and kept for the session in case the visitor
+// navigates around before converting.
+const LEAD_ATTRIBUTION_KEY = 'wateroak_lead_attribution';
+
+function readAttributionFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const source = params.get('utm_source');
+    const medium = params.get('utm_medium');
+    const campaign = params.get('utm_campaign');
+    const content = params.get('utm_content');
+    const hasFbClick = params.has('fbclid');
+
+    if (!source && !campaign && !hasFbClick) return null;
+
+    let label;
+    if (source) {
+        label = medium ? source + ' / ' + medium : source;
+    } else {
+        label = 'facebook / paid';
+    }
+
+    return {
+        source: label,
+        campaign: [campaign, content].filter(Boolean).join(' – ')
+    };
+}
+
+function getAttribution() {
+    const fromUrl = readAttributionFromUrl();
+    if (fromUrl) {
+        try {
+            sessionStorage.setItem(LEAD_ATTRIBUTION_KEY, JSON.stringify(fromUrl));
+        } catch (e) { /* private browsing — fall through, the URL value still applies */ }
+        return fromUrl;
+    }
+    try {
+        const stored = sessionStorage.getItem(LEAD_ATTRIBUTION_KEY);
+        if (stored) return JSON.parse(stored);
+    } catch (e) { /* ignore */ }
+    return null;
+}
+
+function applyAttribution() {
+    const attribution = getAttribution();
+    if (!attribution) return;
+    document.querySelectorAll('.js-lead-source').forEach(input => {
+        input.value = attribution.source;
+    });
+    document.querySelectorAll('.js-lead-campaign').forEach(input => {
+        input.value = attribution.campaign;
+    });
+}
+
+applyAttribution();
+
+// ===== Meta Pixel events =====
+// No-ops safely until a real Pixel ID is set in index.html.
+function trackPixel(event, params) {
+    if (typeof fbq !== 'function') return;
+    fbq('track', event, params || {});
+}
+
+// Count a tap on the phone number as an intent signal.
+document.querySelectorAll('a[href^="tel:"]').forEach(link => {
+    link.addEventListener('click', () => {
+        trackPixel('Contact', { content_name: '2147 Wateroak Dr', method: 'phone' });
+    });
+});
+
 // ===== Contact Forms =====
-function handleFormSubmit(formId, successId) {
+function handleFormSubmit(formId, successId, leadType) {
     const form = document.getElementById(formId);
     const success = document.getElementById(successId);
     form.addEventListener('submit', (e) => {
@@ -101,7 +173,14 @@ function handleFormSubmit(formId, successId) {
             return response.json();
         }).then((data) => {
             if (data.success) {
+                trackPixel('Lead', {
+                    content_name: '2147 Wateroak Dr',
+                    content_category: leadType,
+                    value: 839000,
+                    currency: 'CAD'
+                });
                 form.reset();
+                applyAttribution(); // reset() restores hidden defaults — re-stamp them
                 success.textContent = 'Thank you! We will be in touch shortly.';
                 success.classList.remove('error');
                 success.classList.add('show');
@@ -120,8 +199,8 @@ function handleFormSubmit(formId, successId) {
     });
 }
 
-handleFormSubmit('contactForm', 'contactSuccess');
-handleFormSubmit('evalForm', 'evalSuccess');
+handleFormSubmit('contactForm', 'contactSuccess', 'Showing Request');
+handleFormSubmit('evalForm', 'evalSuccess', 'Home Evaluation');
 
 // ===== Scroll animations =====
 const observerOptions = { threshold: 0.1, rootMargin: '0px 0px -50px 0px' };
