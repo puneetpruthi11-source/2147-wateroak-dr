@@ -3,333 +3,621 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#0b0d12">
+<meta name="theme-color" content="#07080d">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Command Centre">
 <link rel="manifest" href="manifest.webmanifest">
 <title>Command Centre</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #0b0d12;
-  --surface: #14171f;
-  --surface-2: #1c2030;
-  --border: #262b3a;
-  --text: #e8ecf3;
-  --muted: #8b93a7;
-  --accent: #d4af37;
-  --accent-soft: rgba(212, 175, 55, 0.15);
-  --green: #4ade80;
-  --blue: #60a5fa;
-  --purple: #a78bfa;
-  --orange: #fb923c;
-  --red: #f87171;
+  --bg: #07080d;
+  --bg-2: #0e1017;
+  --surface: rgba(255,255,255,0.04);
+  --surface-2: rgba(255,255,255,0.06);
+  --border: rgba(255,255,255,0.08);
+  --text: #f3f4f8;
+  --muted: #8e94a8;
+  --dim: #5c6174;
+  --gold: #c9a24c;
+  --gold-soft: rgba(201, 162, 76, 0.14);
+  --rose: #e5a3a3;
+  --sage: #9bc1a3;
+  --sky: #9bb8e0;
+  --lavender: #b4a8d4;
+  --amber: #e5b878;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body {
-  margin: 0; padding: 0;
-  background: var(--bg); color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+html { background: var(--bg); }
+body {
+  margin: 0;
+  background:
+    radial-gradient(ellipse 90% 60% at 50% -10%, rgba(201,162,76,0.08), transparent 60%),
+    radial-gradient(ellipse 70% 40% at 100% 20%, rgba(155,184,224,0.05), transparent 60%),
+    var(--bg);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
+  padding: calc(var(--safe-top) + 20px) 18px calc(var(--safe-bottom) + 100px);
+  max-width: 760px; margin: 0 auto;
+  letter-spacing: -0.005em;
 }
-body {
-  padding: calc(var(--safe-top) + 16px) 16px calc(var(--safe-bottom) + 96px);
-  max-width: 720px; margin: 0 auto;
-}
-.greeting { font-size: 13px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
-.headline { font-size: 28px; font-weight: 700; margin: 4px 0 2px; }
-.date-line { font-size: 14px; color: var(--muted); margin-bottom: 20px; }
 
-.quick-actions {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
-  margin-bottom: 22px;
+/* ===== Header ===== */
+.hdr { margin-bottom: 22px; }
+.hdr .eyebrow {
+  font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--dim); font-weight: 600;
 }
-.quick-actions button {
-  background: var(--surface); border: 1px solid var(--border);
-  color: var(--text); padding: 12px 14px; border-radius: 14px;
-  font-size: 14px; font-weight: 600; cursor: pointer;
-  display: flex; align-items: center; justify-content: center; gap: 6px;
+.hdr h1 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 500; font-size: 34px; line-height: 1.1;
+  margin: 6px 0 4px; letter-spacing: -0.02em;
 }
-.quick-actions button:active { background: var(--surface-2); }
-.quick-actions button .plus { color: var(--accent); font-size: 18px; line-height: 1; }
+.hdr h1 .name { color: var(--gold); font-style: italic; }
+.hdr .sub {
+  color: var(--muted); font-size: 14px; display: flex; align-items: center; gap: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.hdr .sub .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--dim); }
 
-.section { margin-bottom: 24px; }
-.section-head {
+/* ===== Next up hero ===== */
+.hero {
+  position: relative;
+  background: linear-gradient(145deg, rgba(201,162,76,0.14), rgba(201,162,76,0.02));
+  border: 1px solid rgba(201,162,76,0.3);
+  border-radius: 24px;
+  padding: 20px 20px 22px;
+  margin-bottom: 26px;
+  overflow: hidden;
+}
+.hero::before {
+  content: ""; position: absolute; inset: 0;
+  background: radial-gradient(circle at 85% 0%, rgba(201,162,76,0.3), transparent 50%);
+  pointer-events: none;
+}
+.hero .label {
+  font-size: 10px; letter-spacing: 0.24em; text-transform: uppercase;
+  color: var(--gold); font-weight: 700;
+}
+.hero .countdown {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 15px; color: var(--muted); margin-top: 4px;
+  font-style: italic;
+}
+.hero .event-title {
+  font-size: 22px; font-weight: 600; margin: 10px 0 6px;
+  line-height: 1.25;
+}
+.hero .event-time {
+  font-size: 14px; color: var(--text); font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.hero .event-meta {
+  margin-top: 10px; font-size: 13px; color: var(--muted);
+  display: flex; align-items: center; gap: 8px;
+}
+.hero.empty { background: var(--surface); border-color: var(--border); }
+.hero.empty .label { color: var(--muted); }
+
+/* ===== Sections ===== */
+section { margin-bottom: 28px; }
+.sec-head {
   display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: 12px; padding: 0 2px;
+}
+.sec-title {
+  font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--muted); font-weight: 600;
+}
+.sec-action {
+  font-size: 12px; color: var(--gold); font-weight: 600;
+  background: none; border: none; cursor: pointer; padding: 4px 2px;
+}
+.sec-action:active { opacity: 0.6; }
+
+/* ===== Agenda list ===== */
+.agenda {
+  display: flex; flex-direction: column; gap: 2px;
+}
+.ag-item {
+  display: grid; grid-template-columns: 60px 1fr auto;
+  align-items: center; gap: 14px;
+  padding: 14px 2px; border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.ag-item:last-child { border-bottom: none; }
+.ag-item.past { opacity: 0.4; }
+.ag-item .time {
+  font-variant-numeric: tabular-nums;
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 18px; font-weight: 500; color: var(--text);
+  line-height: 1.1;
+}
+.ag-item .time small {
+  display: block; font-family: 'Inter', sans-serif;
+  font-size: 10px; color: var(--dim); font-weight: 600;
+  letter-spacing: 0.1em; text-transform: uppercase; margin-top: 2px;
+}
+.ag-item .title { font-weight: 500; font-size: 15px; line-height: 1.3; }
+.ag-item .meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.ag-item .chev { color: var(--dim); font-size: 18px; }
+.ag-item .pill {
+  display: inline-block; font-size: 10px; letter-spacing: 0.1em;
+  text-transform: uppercase; padding: 2px 8px; border-radius: 999px;
+  background: var(--gold-soft); color: var(--gold); font-weight: 700;
+  margin-left: 6px; vertical-align: middle;
+}
+
+.day-break {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 13px; color: var(--muted); font-style: italic;
+  padding: 14px 2px 6px; letter-spacing: 0.02em;
+}
+
+/* ===== Project cards ===== */
+.proj-scroll {
+  display: flex; gap: 12px; overflow-x: auto;
+  margin: 0 -18px; padding: 2px 18px 10px;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+.proj-scroll::-webkit-scrollbar { display: none; }
+.proj {
+  flex: 0 0 76%; max-width: 300px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 16px;
+  scroll-snap-align: start;
+  position: relative;
+  cursor: pointer;
+}
+.proj.wide { flex: 0 0 100%; max-width: none; }
+.proj .status-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; margin-bottom: 10px;
+}
+.badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 9px; border-radius: 999px; font-size: 11px;
+  font-weight: 600; letter-spacing: 0.02em;
+  background: var(--surface-2); border: 1px solid var(--border);
+  color: var(--muted);
+}
+.badge .pulse {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 0 currentColor;
+}
+.badge.working { color: var(--sage); border-color: rgba(155,193,163,0.3); background: rgba(155,193,163,0.08); }
+.badge.working .pulse { animation: pulse 2s infinite; }
+.badge.blocked { color: var(--amber); border-color: rgba(229,184,120,0.3); background: rgba(229,184,120,0.08); }
+.badge.review { color: var(--sky); border-color: rgba(155,184,224,0.3); background: rgba(155,184,224,0.08); }
+.badge.done { color: var(--dim); }
+.badge.active { color: var(--gold); border-color: rgba(201,162,76,0.35); background: var(--gold-soft); }
+.badge.listing { color: var(--rose); border-color: rgba(229,163,163,0.3); background: rgba(229,163,163,0.07); }
+.badge.ai { color: var(--lavender); border-color: rgba(180,168,212,0.3); background: rgba(180,168,212,0.07); }
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 currentColor; }
+  70% { box-shadow: 0 0 0 6px rgba(0,0,0,0); }
+  100% { box-shadow: 0 0 0 0 rgba(0,0,0,0); }
+}
+.proj .ptitle {
+  font-size: 16px; font-weight: 600; line-height: 1.3;
+  margin-bottom: 6px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.proj .pnotes {
+  font-size: 13px; color: var(--muted); line-height: 1.45;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.proj .pfoot {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 12px; font-size: 11px; color: var(--dim);
+}
+.proj .pfoot .edit { color: var(--muted); background: none; border: none; cursor: pointer; font-size: 11px; }
+
+/* Vertical project list for real estate */
+.proj-list .proj {
+  flex: none; width: 100%; max-width: none;
   margin-bottom: 10px;
 }
-.section-title { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
-.section-count { font-size: 11px; color: var(--muted); }
+.proj-list { display: block; }
 
-.card {
+/* ===== Add buttons ===== */
+.add-strip {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  margin-bottom: 28px;
+}
+.add-btn {
   background: var(--surface); border: 1px solid var(--border);
-  border-radius: 16px; padding: 14px; margin-bottom: 10px;
-  position: relative;
+  color: var(--text); padding: 13px 14px; border-radius: 14px;
+  font-size: 13px; font-weight: 600; font-family: inherit;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
 }
-.card .row { display: flex; align-items: center; gap: 10px; }
-.card .when {
-  font-variant-numeric: tabular-nums;
-  font-weight: 700; font-size: 16px; color: var(--accent);
-  min-width: 64px;
-}
-.card .title { font-weight: 600; font-size: 15px; }
-.card .meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
-.card .notes { font-size: 13px; color: var(--text); opacity: 0.85; margin-top: 8px; line-height: 1.4; white-space: pre-wrap; }
-.card .actions {
-  position: absolute; top: 10px; right: 10px;
-  display: flex; gap: 6px;
-}
-.card .actions button {
-  background: transparent; border: none; color: var(--muted);
-  padding: 4px 6px; cursor: pointer; font-size: 12px;
-}
-.card .actions button:hover { color: var(--text); }
+.add-btn:active { background: var(--surface-2); }
+.add-btn .plus { color: var(--gold); font-size: 16px; font-weight: 700; }
 
-.badge {
-  display: inline-block; padding: 2px 8px; border-radius: 999px;
-  font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
-  border: 1px solid var(--border);
-}
-.badge.green { color: var(--green); border-color: rgba(74, 222, 128, 0.4); }
-.badge.blue { color: var(--blue); border-color: rgba(96, 165, 250, 0.4); }
-.badge.purple { color: var(--purple); border-color: rgba(167, 139, 250, 0.4); }
-.badge.orange { color: var(--orange); border-color: rgba(251, 146, 60, 0.4); }
-.badge.red { color: var(--red); border-color: rgba(248, 113, 113, 0.4); }
-.badge.gold { color: var(--accent); border-color: rgba(212, 175, 55, 0.5); background: var(--accent-soft); }
-
-.tabs { display: flex; gap: 6px; margin-bottom: 12px; }
-.tab {
-  flex: 1; background: var(--surface); border: 1px solid var(--border);
-  color: var(--muted); padding: 8px 10px; border-radius: 10px;
-  font-size: 12px; font-weight: 600; cursor: pointer;
-}
-.tab.active { color: var(--text); background: var(--surface-2); border-color: var(--accent); }
-
-.empty {
+/* ===== Empty state ===== */
+.empty-state {
   text-align: center; color: var(--muted); font-size: 13px;
-  padding: 22px 12px; border: 1px dashed var(--border); border-radius: 14px;
+  padding: 24px 16px; border: 1px dashed var(--border); border-radius: 16px;
 }
 
-/* Modal */
+/* ===== Modal ===== */
 .modal-bg {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+  position: fixed; inset: 0; background: rgba(5,6,10,0.75);
   display: none; align-items: flex-end; justify-content: center;
-  z-index: 50; backdrop-filter: blur(4px);
+  z-index: 50; backdrop-filter: blur(10px);
 }
 .modal-bg.open { display: flex; }
 .modal {
-  background: var(--surface); width: 100%; max-width: 720px;
-  border-radius: 20px 20px 0 0; padding: 20px 18px calc(var(--safe-bottom) + 20px);
+  background: var(--bg-2); width: 100%; max-width: 760px;
+  border-radius: 24px 24px 0 0;
+  padding: 22px 20px calc(var(--safe-bottom) + 22px);
   border-top: 1px solid var(--border);
-  max-height: 90vh; overflow-y: auto;
+  max-height: 92vh; overflow-y: auto;
 }
-.modal h3 { margin: 0 0 14px; font-size: 18px; }
-.field { margin-bottom: 12px; }
-.field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.04em; text-transform: uppercase; }
+.modal h3 {
+  margin: 0 0 18px; font-size: 20px; font-weight: 600;
+  font-family: 'Fraunces', Georgia, serif;
+}
+.field { margin-bottom: 14px; }
+.field label {
+  display: block; font-size: 10px; color: var(--muted); margin-bottom: 7px;
+  letter-spacing: 0.16em; text-transform: uppercase; font-weight: 600;
+}
 .field input, .field select, .field textarea {
   width: 100%; background: var(--bg); border: 1px solid var(--border);
-  color: var(--text); padding: 12px 12px; border-radius: 12px;
+  color: var(--text); padding: 13px 14px; border-radius: 12px;
   font-size: 15px; font-family: inherit; outline: none;
+  transition: border-color 0.15s;
 }
-.field textarea { resize: vertical; min-height: 80px; }
-.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
-.modal-actions { display: flex; gap: 10px; margin-top: 8px; }
+.field textarea { resize: vertical; min-height: 84px; line-height: 1.4; }
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--gold); }
+.modal-actions { display: flex; gap: 10px; margin-top: 18px; }
 .btn {
-  flex: 1; padding: 13px; border-radius: 12px; border: 1px solid var(--border);
-  background: var(--surface-2); color: var(--text); font-size: 15px; font-weight: 600;
-  cursor: pointer;
+  flex: 1; padding: 14px; border-radius: 12px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text); font-size: 14px; font-weight: 600;
+  cursor: pointer; font-family: inherit;
 }
-.btn.primary { background: var(--accent); color: #0b0d12; border-color: var(--accent); }
-.btn.danger { color: var(--red); border-color: rgba(248,113,113,0.4); background: transparent; }
+.btn.primary { background: var(--gold); color: #1a1407; border-color: var(--gold); }
+.btn.danger { color: #e07878; border-color: rgba(224,120,120,0.3); background: transparent; }
 
 footer {
-  text-align: center; color: var(--muted); font-size: 11px;
-  margin-top: 24px;
+  text-align: center; color: var(--dim); font-size: 11px;
+  margin-top: 28px; padding-top: 20px;
+  border-top: 1px solid var(--border);
 }
-footer a { color: var(--muted); }
+footer a { color: var(--muted); text-decoration: none; }
+footer .sep { margin: 0 8px; opacity: 0.4; }
+
+.sync-note {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 12px 14px; font-size: 12px;
+  color: var(--muted); line-height: 1.5; margin-bottom: 22px;
+}
+.sync-note strong { color: var(--text); font-weight: 600; }
 </style>
 </head>
 <body>
 
-<div class="greeting" id="greeting">Good morning</div>
-<h1 class="headline">Command Centre</h1>
-<div class="date-line" id="dateLine"></div>
+<header class="hdr">
+  <div class="eyebrow" id="eyebrow">Command Centre</div>
+  <h1 id="greet">Good afternoon, <span class="name">Puneet</span>.</h1>
+  <div class="sub">
+    <span id="dateLine"></span>
+    <span class="dot"></span>
+    <span id="clock"></span>
+  </div>
+</header>
 
-<div class="quick-actions">
-  <button onclick="openModal('appt')"><span class="plus">+</span> Appointment</button>
-  <button onclick="openModal('project')"><span class="plus">+</span> Project</button>
+<div class="hero" id="hero"></div>
+
+<div class="add-strip">
+  <button class="add-btn" onclick="openModal('appt')"><span class="plus">+</span> Appointment</button>
+  <button class="add-btn" onclick="openModal('project')"><span class="plus">+</span> Project</button>
 </div>
 
-<section class="section">
-  <div class="section-head">
-    <div class="section-title">Upcoming Appointments</div>
-    <div class="section-count" id="apptCount"></div>
+<section>
+  <div class="sec-head">
+    <div class="sec-title">Agenda</div>
+    <div class="sec-title" id="agendaDay" style="letter-spacing:0.1em;color:var(--dim);"></div>
   </div>
-  <div id="apptList"></div>
+  <div class="agenda" id="agendaList"></div>
 </section>
 
-<section class="section">
-  <div class="section-head">
-    <div class="section-title">Projects</div>
-    <div class="section-count" id="projectCount"></div>
+<section>
+  <div class="sec-head">
+    <div class="sec-title">Claude Sessions</div>
+    <div class="sec-title" style="color:var(--dim);letter-spacing:0.1em;" id="claudeCount"></div>
   </div>
-  <div class="tabs">
-    <button class="tab active" data-filter="all">All</button>
-    <button class="tab" data-filter="listing">Listings</button>
-    <button class="tab" data-filter="ai">AI / Claude / ChatGPT</button>
-    <button class="tab" data-filter="other">Other</button>
-  </div>
-  <div id="projectList"></div>
+  <div class="proj-scroll" id="claudeList"></div>
 </section>
+
+<section>
+  <div class="sec-head">
+    <div class="sec-title">Listings &amp; Projects</div>
+  </div>
+  <div class="proj-list" id="projectList"></div>
+</section>
+
+<div class="sync-note">
+  <strong>Live snapshot.</strong> Calendar and Claude session data was captured when this page was generated. For live updates, re-run the "Command Centre" prompt in Claude and I'll regenerate it with fresh data.
+</div>
 
 <footer>
-  Saved on this device &middot; <a href="#" onclick="exportData(event)">Export</a> &middot; <a href="#" onclick="importData(event)">Import</a>
+  Saved on this device
+  <span class="sep">·</span>
+  <a href="#" onclick="exportData(event)">Export</a>
+  <span class="sep">·</span>
+  <a href="#" onclick="importData(event)">Import</a>
+  <span class="sep">·</span>
+  <a href="#" onclick="resetSeed(event)">Reset</a>
 </footer>
 
-<!-- Modal -->
 <div class="modal-bg" id="modalBg">
   <div class="modal" id="modal"></div>
 </div>
 
 <script>
-const STORE_KEY = 'cmdCentre.v1';
-const defaultData = {
+const STORE_KEY = 'cmdCentre.v2';
+const GEN_AT = '2026-10-27T12:30:00-04:00';
+
+// Seeded from live Google Calendar + Claude sessions when this page was generated.
+const SEED = {
+  generatedAt: GEN_AT,
   appointments: [
-    { id: 'a1', when: new Date(Date.now() + 86400000).toISOString().slice(0,16), title: 'Showing — 2147 Wateroak Dr', with: 'Client', notes: 'Bring updated feature sheet.' }
+    { id: 'c1', when: '2026-10-27T08:45', title: 'Call mom', with: 'Recurring', notes: '', src: 'cal' },
+    { id: 'c2', when: '2026-10-27T10:00', title: 'Inner Circle Mentorship: Puneet & Lang', with: 'Google Meet', notes: 'meet.google.com/emi-zsrr-dfa', src: 'cal' },
+    { id: 'c3', when: '2026-10-27T11:30', title: 'Door knocking', with: '', notes: '', src: 'cal' },
+    { id: 'c4', when: '2026-10-27T14:00', title: 'Call leads and past clients', with: '', notes: '', src: 'cal' },
+    { id: 'c5', when: '2026-10-27T20:30', title: 'Life list', with: 'Daily review', notes: '', src: 'cal' },
+    { id: 'c6', when: '2026-10-28T08:45', title: 'Call mom', with: '', notes: '', src: 'cal' },
+    { id: 'c7', when: '2026-10-28T10:30', title: 'Door knocking', with: '', notes: '', src: 'cal' },
+    { id: 'c8', when: '2026-10-28T11:30', title: 'Visit listings', with: '', notes: '', src: 'cal' },
+    { id: 'c9', when: '2026-10-28T14:00', title: 'Call leads and past clients', with: '', notes: '', src: 'cal' },
+    { id: 'c10', when: '2026-10-30T15:00', title: 'Video Studio Booking', with: 'Royal LePage West', notes: 'Signature Mississauga studio', src: 'cal' },
+    { id: 'c11', when: '2026-10-31T15:00', title: 'Reserve Mishri', with: '', notes: '', src: 'cal' },
+    { id: 'c12', when: '2026-11-01T18:30', title: 'With Sushant Mahajan at Mishri', with: '', notes: '', src: 'cal' }
+  ],
+  claudeSessions: [
+    { id: 's1', title: 'Birthday list augmentation from Gmail', status: 'Working', updated: '2026-10-27T19:36', note: 'Working — unread activity.', unread: true },
+    { id: 's2', title: 'Claude capabilities for real estate marketing', status: 'Blocked', updated: '2026-10-27T19:34', note: 'Needs you: reply "next" to start the Video Reels skill.', unread: true },
+    { id: 's3', title: 'Oakville real estate agent prompt', status: 'Done', updated: '2026-10-27T14:15', note: 'Full Oakville prompt delivered: market data, personas, 90-day plan.' },
+    { id: 's4', title: 'CMA for Kaushal property', status: 'Done', updated: '2026-10-26T20:17', note: 'CMA updated to $1,200K–$1,225K. PDF saved: 1344 Rolph Terr.' },
+    { id: 's5', title: 'Multilingual conversation recorder', status: 'Blocked', updated: '2026-10-25T00:45', note: 'Needs you: 12-min test + screenshot of Recent activity.' },
+    { id: 's6', title: 'Facebook ads — daily sweep', status: 'Done', updated: '2026-10-27T13:00', note: 'All 4 campaigns ran. Spend summary emailed. No action needed.' },
+    { id: 's7', title: 'Diwali gift distribution route', status: 'Review', updated: '2026-10-25T14:42', note: 'Route planned — ready for your review.' },
+    { id: 's8', title: 'South Banks broker landing page', status: 'Done', updated: '2026-10-20T21:24', note: 'mississaugasouthbanks.com live with HTTPS, leads to Netlify.' },
+    { id: 's9', title: 'Fletcher’s Creek leads follow-up', status: 'Done', updated: '2026-10-14T21:58', note: 'Monthly Content mail pack delivered.' }
   ],
   projects: [
-    { id: 'p1', type: 'listing', title: '2147 Wateroak Dr', status: 'Active', updated: Date.now(), notes: 'Listed at $839,000. Twilight photos done.' },
-    { id: 'p2', type: 'ai', title: 'Listing site polish (Claude)', status: 'In Progress', updated: Date.now(), notes: 'Working on phone command centre.' }
+    { id: 'p1', type: 'listing', title: '2147 Wateroak Dr', status: 'Active', updated: Date.now(), notes: 'Listed at $839,000. Twilight photos done. Open house Sat 2-4pm.' },
+    { id: 'p2', type: 'listing', title: 'Fletcher’s Creek Village', status: 'Marketing', updated: Date.now(), notes: 'Website live. Weekly newsletter automation deployed to 883 FUB contacts.' },
+    { id: 'p3', type: 'listing', title: 'South Banks (Mississauga)', status: 'Live', updated: Date.now(), notes: 'Broker landing page live. HTTPS, Netlify leads capture working.' },
+    { id: 'p4', type: 'other', title: 'Oakville market expansion', status: 'In Progress', updated: Date.now(), notes: 'Lead sweep complete: owner-sold sellers, 24 referral partners, Five Oaks launch.' }
   ]
 };
 
 let data = load();
-let projectFilter = 'all';
-let editing = null;
 
 function load() {
   try {
     const raw = localStorage.getItem(STORE_KEY);
-    if (!raw) { save(defaultData); return defaultData; }
-    return JSON.parse(raw);
-  } catch (e) { return JSON.parse(JSON.stringify(defaultData)); }
+    if (!raw) { localStorage.setItem(STORE_KEY, JSON.stringify(SEED)); return JSON.parse(JSON.stringify(SEED)); }
+    const parsed = JSON.parse(raw);
+    // merge seed shape if migrating
+    return Object.assign({}, SEED, parsed);
+  } catch { return JSON.parse(JSON.stringify(SEED)); }
 }
-function save(d) { localStorage.setItem(STORE_KEY, JSON.stringify(d || data)); }
+function save() { localStorage.setItem(STORE_KEY, JSON.stringify(data)); }
 function uid() { return Math.random().toString(36).slice(2, 9); }
 
-function renderGreeting() {
+function esc(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ============ Header + clock ============ */
+function tickClock() {
   const now = new Date();
   const h = now.getHours();
   let g = 'Good evening';
   if (h < 12) g = 'Good morning';
   else if (h < 17) g = 'Good afternoon';
-  document.getElementById('greeting').textContent = g;
+  document.getElementById('greet').innerHTML = `${g}, <span class="name">Puneet</span>.`;
   document.getElementById('dateLine').textContent = now.toLocaleDateString(undefined, {
-    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+    weekday: 'long', month: 'long', day: 'numeric'
   });
+  document.getElementById('clock').textContent = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 }
 
-function fmtWhen(iso) {
-  const d = new Date(iso);
-  const today = new Date();
-  const tomorrow = new Date(); tomorrow.setDate(today.getDate() + 1);
-  const sameDay = (a,b) => a.toDateString() === b.toDateString();
-  const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-  if (sameDay(d, today)) return { day: 'Today', time };
-  if (sameDay(d, tomorrow)) return { day: 'Tomorrow', time };
-  return {
-    day: d.toLocaleDateString([], { month: 'short', day: 'numeric' }),
-    time
-  };
-}
-
-function renderAppts() {
-  const list = document.getElementById('apptList');
-  const sorted = [...data.appointments].sort((a,b) => new Date(a.when) - new Date(b.when));
-  document.getElementById('apptCount').textContent = sorted.length ? sorted.length : '';
-  if (!sorted.length) {
-    list.innerHTML = '<div class="empty">No appointments yet. Tap + Appointment to add one.</div>';
+/* ============ Hero: next appointment ============ */
+function renderHero() {
+  const now = new Date();
+  const upcoming = data.appointments
+    .map(a => ({ ...a, _d: new Date(a.when) }))
+    .filter(a => a._d > now)
+    .sort((a,b) => a._d - b._d);
+  const el = document.getElementById('hero');
+  if (!upcoming.length) {
+    el.classList.add('empty');
+    el.innerHTML = `<div class="label">Nothing on deck</div>
+      <div class="event-title" style="font-size:17px;color:var(--muted);font-weight:400;">You're clear for the rest of the day.</div>`;
     return;
   }
-  list.innerHTML = sorted.map(a => {
-    const w = fmtWhen(a.when);
-    return `
-      <div class="card">
-        <div class="actions">
-          <button onclick="openModal('appt','${a.id}')">Edit</button>
-          <button onclick="del('appt','${a.id}')">✕</button>
-        </div>
-        <div class="row">
-          <div class="when"><div>${w.day}</div><div style="font-size:12px;color:var(--muted);font-weight:600;">${w.time}</div></div>
-          <div style="min-width:0;">
-            <div class="title">${esc(a.title)}</div>
-            ${a.with ? `<div class="meta">${esc(a.with)}</div>` : ''}
-          </div>
-        </div>
-        ${a.notes ? `<div class="notes">${esc(a.notes)}</div>` : ''}
-      </div>`;
-  }).join('');
+  el.classList.remove('empty');
+  const n = upcoming[0];
+  const diff = (n._d - now) / 1000;
+  let count;
+  if (diff < 60) count = 'Starting now';
+  else if (diff < 3600) count = `In ${Math.round(diff/60)} min`;
+  else if (diff < 86400) count = `In ${Math.round(diff/3600)}h ${Math.round((diff % 3600)/60)}m`;
+  else {
+    const days = Math.floor(diff/86400);
+    count = days === 1 ? 'Tomorrow' : `In ${days} days`;
+  }
+  const timeStr = n._d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  const dayStr = isSameDay(n._d, now) ? 'Today' : n._d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+  el.innerHTML = `
+    <div class="label">Up Next</div>
+    <div class="countdown">${count}</div>
+    <div class="event-title">${esc(n.title)}</div>
+    <div class="event-time">${dayStr} · ${timeStr}</div>
+    ${n.with || n.notes ? `<div class="event-meta">${esc(n.with || n.notes)}</div>` : ''}
+  `;
 }
 
-function statusBadgeClass(s) {
-  s = (s || '').toLowerCase();
-  if (s.includes('active') || s.includes('live')) return 'green';
-  if (s.includes('progress')) return 'blue';
-  if (s.includes('idea') || s.includes('backlog')) return 'purple';
-  if (s.includes('hold') || s.includes('pause')) return 'orange';
-  if (s.includes('done') || s.includes('sold') || s.includes('closed')) return 'gold';
-  if (s.includes('block')) return 'red';
-  return '';
+function isSameDay(a, b) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
-function typeLabel(t) {
-  if (t === 'listing') return 'Listing';
-  if (t === 'ai') return 'AI';
-  return 'Project';
+
+/* ============ Agenda ============ */
+function renderAgenda() {
+  const now = new Date();
+  const upcoming = data.appointments
+    .map(a => ({ ...a, _d: new Date(a.when) }))
+    .filter(a => {
+      // show from start of today onward, up to 14 days
+      const start = new Date(now); start.setHours(0,0,0,0);
+      const end = new Date(now); end.setDate(end.getDate() + 14);
+      return a._d >= start && a._d <= end;
+    })
+    .sort((a,b) => a._d - b._d);
+
+  const list = document.getElementById('agendaList');
+  const dayLabel = document.getElementById('agendaDay');
+  dayLabel.textContent = `Next 14 days`;
+
+  if (!upcoming.length) {
+    list.innerHTML = `<div class="empty-state">No appointments in the next two weeks.</div>`;
+    return;
+  }
+
+  let html = '';
+  let currentDay = '';
+  upcoming.forEach(a => {
+    const dayKey = a._d.toDateString();
+    if (dayKey !== currentDay) {
+      currentDay = dayKey;
+      const label = isSameDay(a._d, now) ? 'Today' :
+        isSameDay(a._d, new Date(now.getTime() + 86400000)) ? 'Tomorrow' :
+        a._d.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+      html += `<div class="day-break">${label}</div>`;
+    }
+    const past = a._d < now;
+    const t = a._d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    const [tNum, tMer] = t.split(' ');
+    const nextMark = a._isNext ? '<span class="pill">Next</span>' : '';
+    html += `
+      <div class="ag-item ${past ? 'past' : ''}" onclick="openModal('appt','${a.id}')">
+        <div class="time">${tNum}<small>${tMer || ''}</small></div>
+        <div>
+          <div class="title">${esc(a.title)}${nextMark}</div>
+          ${a.with || a.notes ? `<div class="meta">${esc(a.with || a.notes)}</div>` : ''}
+        </div>
+        <div class="chev">›</div>
+      </div>`;
+  });
+  list.innerHTML = html;
+}
+
+/* ============ Claude sessions ============ */
+function statusBadge(s) {
+  const key = (s || '').toLowerCase();
+  if (key.includes('work')) return `<span class="badge working"><span class="pulse"></span>Working</span>`;
+  if (key.includes('block')) return `<span class="badge blocked">● Needs you</span>`;
+  if (key.includes('review')) return `<span class="badge review">● Review ready</span>`;
+  if (key.includes('done') || key.includes('complete')) return `<span class="badge done">● Done</span>`;
+  if (key.includes('active') || key.includes('live')) return `<span class="badge active">● Active</span>`;
+  return `<span class="badge">${esc(s)}</span>`;
+}
+
+function renderClaude() {
+  const list = document.getElementById('claudeList');
+  const items = data.claudeSessions || [];
+  document.getElementById('claudeCount').textContent = items.length ? `${items.length} tracked` : '';
+  if (!items.length) {
+    list.innerHTML = `<div class="empty-state" style="width:100%;">No Claude sessions tracked yet.</div>`;
+    return;
+  }
+  // sort: blocked/working first, then by updated desc
+  const rank = s => {
+    const k = (s.status||'').toLowerCase();
+    if (k.includes('block')) return 0;
+    if (k.includes('work')) return 1;
+    if (k.includes('review')) return 2;
+    return 3;
+  };
+  items.sort((a,b) => {
+    const r = rank(a) - rank(b);
+    if (r) return r;
+    return new Date(b.updated) - new Date(a.updated);
+  });
+  list.innerHTML = items.map(s => `
+    <div class="proj" onclick="editSession('${s.id}')">
+      <div class="status-row">
+        ${statusBadge(s.status)}
+        <span style="font-size:11px;color:var(--dim);">${timeAgo(s.updated)}</span>
+      </div>
+      <div class="ptitle">${esc(s.title)}</div>
+      <div class="pnotes">${esc(s.note || '')}</div>
+    </div>
+  `).join('');
+}
+
+/* ============ Projects (listings etc) ============ */
+function typeBadge(t) {
+  if (t === 'listing') return `<span class="badge listing">Listing</span>`;
+  if (t === 'ai') return `<span class="badge ai">AI</span>`;
+  return `<span class="badge">Project</span>`;
 }
 
 function renderProjects() {
   const list = document.getElementById('projectList');
-  let items = [...data.projects];
-  if (projectFilter !== 'all') items = items.filter(p => p.type === projectFilter);
-  items.sort((a,b) => (b.updated || 0) - (a.updated || 0));
-  document.getElementById('projectCount').textContent = items.length ? items.length : '';
+  const items = [...(data.projects || [])].sort((a,b) => (b.updated||0) - (a.updated||0));
   if (!items.length) {
-    list.innerHTML = '<div class="empty">No projects here yet.</div>';
+    list.innerHTML = `<div class="empty-state">No projects yet. Tap "+ Project" to add one.</div>`;
     return;
   }
   list.innerHTML = items.map(p => `
-    <div class="card">
-      <div class="actions">
-        <button onclick="openModal('project','${p.id}')">Edit</button>
-        <button onclick="del('project','${p.id}')">✕</button>
+    <div class="proj wide" onclick="openModal('project','${p.id}')">
+      <div class="status-row">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          ${typeBadge(p.type)}
+          ${p.status ? statusBadge(p.status) : ''}
+        </div>
+        <span style="font-size:11px;color:var(--dim);">${timeAgo(p.updated)}</span>
       </div>
-      <div class="row" style="gap:8px;flex-wrap:wrap;">
-        <span class="badge">${typeLabel(p.type)}</span>
-        ${p.status ? `<span class="badge ${statusBadgeClass(p.status)}">${esc(p.status)}</span>` : ''}
-      </div>
-      <div class="title" style="margin-top:8px;">${esc(p.title)}</div>
-      ${p.notes ? `<div class="notes">${esc(p.notes)}</div>` : ''}
-      <div class="meta" style="margin-top:8px;">Updated ${timeAgo(p.updated)}</div>
+      <div class="ptitle">${esc(p.title)}</div>
+      ${p.notes ? `<div class="pnotes" style="-webkit-line-clamp:4;">${esc(p.notes)}</div>` : ''}
     </div>
   `).join('');
 }
 
 function timeAgo(ts) {
   if (!ts) return '—';
-  const diff = (Date.now() - ts) / 1000;
+  const t = typeof ts === 'string' ? new Date(ts).getTime() : ts;
+  const diff = (Date.now() - t) / 1000;
   if (diff < 60) return 'just now';
   if (diff < 3600) return Math.floor(diff/60) + 'm ago';
   if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
-  return Math.floor(diff/86400) + 'd ago';
+  if (diff < 86400 * 7) return Math.floor(diff/86400) + 'd ago';
+  return Math.floor(diff/(86400*7)) + 'w ago';
 }
 
-function esc(s) {
-  return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
+/* ============ Modal ============ */
+let editing = null;
 
 function openModal(kind, id) {
   editing = { kind, id };
@@ -343,41 +631,64 @@ function openModal(kind, id) {
       <div class="field"><label>With / Where</label><input id="f_with" value="${esc(a.with || '')}" placeholder="Client name or location"></div>
       <div class="field"><label>Notes</label><textarea id="f_notes" placeholder="Anything to remember">${esc(a.notes || '')}</textarea></div>
       <div class="modal-actions">
-        ${id ? '<button class="btn danger" onclick="del(\'appt\',\''+id+'\',true)">Delete</button>' : ''}
+        ${id ? `<button class="btn danger" onclick="del('appt','${id}',true)">Delete</button>` : ''}
         <button class="btn" onclick="closeModal()">Cancel</button>
         <button class="btn primary" onclick="saveAppt()">Save</button>
       </div>`;
   } else {
-    const p = id ? data.projects.find(x => x.id === id) : { type: 'ai', title: '', status: 'In Progress', notes: '' };
+    const p = id ? data.projects.find(x => x.id === id) : { type: 'listing', title: '', status: 'In Progress', notes: '' };
     modal.innerHTML = `
       <h3>${id ? 'Edit' : 'New'} Project</h3>
       <div class="field"><label>Type</label>
         <select id="f_type">
-          <option value="ai" ${p.type==='ai'?'selected':''}>AI (Claude / ChatGPT)</option>
           <option value="listing" ${p.type==='listing'?'selected':''}>Real Estate Listing</option>
+          <option value="ai" ${p.type==='ai'?'selected':''}>AI Project (Claude / ChatGPT)</option>
           <option value="other" ${p.type==='other'?'selected':''}>Other</option>
         </select>
       </div>
       <div class="field"><label>Title</label><input id="f_title" value="${esc(p.title)}" placeholder="Project name"></div>
       <div class="field"><label>Status</label>
         <select id="f_status">
-          ${['Idea','In Progress','Active','On Hold','Blocked','Done'].map(s =>
+          ${['Active','Live','Marketing','In Progress','On Hold','Review','Done'].map(s =>
             `<option ${p.status===s?'selected':''}>${s}</option>`).join('')}
         </select>
       </div>
-      <div class="field"><label>Notes</label><textarea id="f_notes" placeholder="What's the current state?">${esc(p.notes || '')}</textarea></div>
+      <div class="field"><label>Notes</label><textarea id="f_notes" placeholder="Current state, next action…">${esc(p.notes || '')}</textarea></div>
       <div class="modal-actions">
-        ${id ? '<button class="btn danger" onclick="del(\'project\',\''+id+'\',true)">Delete</button>' : ''}
+        ${id ? `<button class="btn danger" onclick="del('project','${id}',true)">Delete</button>` : ''}
         <button class="btn" onclick="closeModal()">Cancel</button>
         <button class="btn primary" onclick="saveProject()">Save</button>
       </div>`;
   }
   document.getElementById('modalBg').classList.add('open');
 }
+
+function editSession(id) {
+  const s = data.claudeSessions.find(x => x.id === id);
+  if (!s) return;
+  editing = { kind: 'session', id };
+  document.getElementById('modal').innerHTML = `
+    <h3>${esc(s.title)}</h3>
+    <div class="field"><label>Status</label>
+      <select id="f_status">
+        ${['Working','Blocked','Review','Done'].map(x =>
+          `<option ${s.status===x?'selected':''}>${x}</option>`).join('')}
+      </select>
+    </div>
+    <div class="field"><label>Note</label><textarea id="f_note">${esc(s.note || '')}</textarea></div>
+    <div class="modal-actions">
+      <button class="btn danger" onclick="del('session','${id}',true)">Remove</button>
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" onclick="saveSession()">Save</button>
+    </div>`;
+  document.getElementById('modalBg').classList.add('open');
+}
+
 function closeModal() {
   editing = null;
   document.getElementById('modalBg').classList.remove('open');
 }
+
 function defaultWhen() {
   const d = new Date(); d.setMinutes(0); d.setSeconds(0);
   d.setHours(d.getHours() + 1);
@@ -395,9 +706,11 @@ function saveAppt() {
   };
   if (!obj.title) { alert('Title is required'); return; }
   const i = data.appointments.findIndex(a => a.id === obj.id);
-  if (i >= 0) data.appointments[i] = obj; else data.appointments.push(obj);
-  save(); renderAppts(); closeModal();
+  if (i >= 0) data.appointments[i] = { ...data.appointments[i], ...obj };
+  else data.appointments.push(obj);
+  save(); renderAll(); closeModal();
 }
+
 function saveProject() {
   const obj = {
     id: editing.id || uid(),
@@ -410,29 +723,32 @@ function saveProject() {
   if (!obj.title) { alert('Title is required'); return; }
   const i = data.projects.findIndex(p => p.id === obj.id);
   if (i >= 0) data.projects[i] = obj; else data.projects.push(obj);
-  save(); renderProjects(); closeModal();
+  save(); renderAll(); closeModal();
 }
+
+function saveSession() {
+  const s = data.claudeSessions.find(x => x.id === editing.id);
+  if (!s) return;
+  s.status = document.getElementById('f_status').value;
+  s.note = document.getElementById('f_note').value.trim();
+  s.updated = new Date().toISOString();
+  save(); renderAll(); closeModal();
+}
+
 function del(kind, id, fromModal) {
   if (!confirm('Delete this item?')) return;
   if (kind === 'appt') data.appointments = data.appointments.filter(a => a.id !== id);
+  else if (kind === 'session') data.claudeSessions = data.claudeSessions.filter(s => s.id !== id);
   else data.projects = data.projects.filter(p => p.id !== id);
-  save();
-  renderAppts(); renderProjects();
+  save(); renderAll();
   if (fromModal) closeModal();
 }
 
 document.getElementById('modalBg').addEventListener('click', e => {
   if (e.target.id === 'modalBg') closeModal();
 });
-document.querySelectorAll('.tab').forEach(t => {
-  t.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
-    t.classList.add('active');
-    projectFilter = t.dataset.filter;
-    renderProjects();
-  });
-});
 
+/* ============ Export / Import / Reset ============ */
 function exportData(e) {
   e.preventDefault();
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -451,20 +767,31 @@ function importData(e) {
     r.onload = () => {
       try {
         const parsed = JSON.parse(r.result);
-        if (parsed.appointments && parsed.projects) {
-          data = parsed; save(); renderAppts(); renderProjects();
-        } else alert('Invalid backup file');
+        data = Object.assign({}, SEED, parsed);
+        save(); renderAll();
       } catch { alert('Could not read file'); }
     };
     r.readAsText(f);
   };
   input.click();
 }
+function resetSeed(e) {
+  e.preventDefault();
+  if (!confirm('Reset to the latest live snapshot? Your local edits will be lost.')) return;
+  data = JSON.parse(JSON.stringify(SEED));
+  save(); renderAll();
+}
 
-renderGreeting();
-renderAppts();
-renderProjects();
-setInterval(renderGreeting, 60000);
+function renderAll() {
+  tickClock();
+  renderHero();
+  renderAgenda();
+  renderClaude();
+  renderProjects();
+}
+
+renderAll();
+setInterval(() => { tickClock(); renderHero(); }, 30000);
 </script>
 </body>
 </html>
